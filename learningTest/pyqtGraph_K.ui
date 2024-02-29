@@ -6,82 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1436</width>
-    <height>872</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="widge_k" native="true">
+   <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>110</x>
-      <y>40</y>
-      <width>1101</width>
-      <height>391</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QWidget" name="widget_vol" native="true">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>460</y>
-      <width>1101</width>
-      <height>171</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QWidget" name="widget_kdj" native="true">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>660</y>
-      <width>1101</width>
-      <height>171</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_k">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
+      <x>30</x>
       <y>10</y>
-      <width>1321</width>
-      <height>30</height>
+      <width>731</width>
+      <height>521</height>
      </rect>
     </property>
-    <property name="text">
-     <string>K线图</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_vol">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>430</y>
-      <width>1321</width>
-      <height>30</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Vol</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_kdj">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>630</y>
-      <width>1321</width>
-      <height>30</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>KDJ</string>
-    </property>
+    <layout class="QVBoxLayout" name="verticalLayout"/>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -89,7 +31,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1436</width>
+     <width>800</width>
      <height>30</height>
     </rect>
    </property>

@@ -47,6 +47,6 @@ if __name__ == '__main__':
    MainWindow = QtWidgets.QMainWindow() # 创建窗体对象
    ui = Ui_MainWindow() # 创建PyQt设计的窗体对象
    ui.setupUi(MainWindow) # 调用PyQt窗体的方法对窗体对象进行初始化设置
-   MainWindow.show() # 显示窗体
+   MainWindow.show() # 显示窗体,使控件可见(默认是隐藏)
    sys.exit(app.exec_()) # 程序关闭时退出进程
 
