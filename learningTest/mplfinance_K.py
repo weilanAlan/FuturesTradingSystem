@@ -139,6 +139,6 @@ futures_zh_minute_sina_df = ak.futures_zh_minute_sina(symbol=cffex_text[2], peri
 print(futures_zh_minute_sina_df)
 print(futures_zh_minute_sina_df.dtypes)
 print(getDf(futures_zh_minute_sina_df).dtypes)
-draw_def('2024-02-23 14:30', '2024-02-23 15:30', getDf(futures_zh_minute_sina_df), (5,10,30), True)
-draw_kdj(futures_zh_minute_sina_df, '2024-02-23 14:30', '2024-02-23 15:30')
+draw_def('2024-03-03 14:30', '2024-03-04 15:30', getDf(futures_zh_minute_sina_df), (5,10,30), True)
+draw_kdj(futures_zh_minute_sina_df, '2024-03-03 14:30', '2024-03-04 15:30')
 # plot_chart(cffex_text[2], futures_zh_minute_sina_df,'2024-01-18 15:00', '2024-01-20 15:00')

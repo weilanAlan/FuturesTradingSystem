@@ -78,7 +78,7 @@ def chart():
     df_new.set_index("time", inplace=True)
     print("df_new:")
     print(df_new)
-    df_new = df_new.loc["2024-02-24 14:00:00": "2024-02-29 14:00:00", :]
+    # df_new = df_new.loc["2024-03-01 14:00:00": "2024-03-02 14:00:00", :]
     print("df_new:")
     print(df_new)
 
