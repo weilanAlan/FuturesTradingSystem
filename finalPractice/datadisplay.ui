@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1364</width>
-    <height>1056</height>
+    <width>1725</width>
+    <height>1118</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,12 +71,12 @@
     <property name="geometry">
      <rect>
       <x>19</x>
-      <y>99</y>
-      <width>1291</width>
-      <height>451</height>
+      <y>59</y>
+      <width>1671</width>
+      <height>991</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout_kline"/>
+    <layout class="QVBoxLayout" name="verticalLayout_kline_graph"/>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -84,7 +84,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1364</width>
+     <width>1725</width>
      <height>30</height>
     </rect>
    </property>
