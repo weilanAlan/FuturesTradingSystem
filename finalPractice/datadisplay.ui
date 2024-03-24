@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1725</width>
-    <height>1118</height>
+    <height>1030</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>20</y>
+      <y>10</y>
       <width>226</width>
       <height>26</height>
      </rect>
@@ -35,32 +35,32 @@
       <widget class="QComboBox" name="comboBox_contract">
        <item>
         <property name="text">
-         <string>IF2403</string>
+         <string>RB888</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>TF2406</string>
+         <string>RB99</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>IH2403</string>
+         <string>SA99</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>IC2403</string>
+         <string>SA888</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>TS2406</string>
+         <string>jm888</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>IM2403</string>
+         <string>jm99</string>
         </property>
        </item>
       </widget>
@@ -70,10 +70,10 @@
    <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>19</x>
-      <y>59</y>
+      <x>20</x>
+      <y>40</y>
       <width>1671</width>
-      <height>991</height>
+      <height>891</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_kline_graph"/>
@@ -90,6 +90,113 @@
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_dayK"/>
+   <addaction name="action_weekK"/>
+   <addaction name="action_monthK"/>
+   <addaction name="action_quarterK"/>
+   <addaction name="action_yearK"/>
+   <addaction name="action_1min"/>
+   <addaction name="action_3min"/>
+   <addaction name="action_5min"/>
+   <addaction name="action_10min"/>
+   <addaction name="action_15min"/>
+   <addaction name="action_30min"/>
+   <addaction name="action_1h"/>
+   <addaction name="action_2h"/>
+  </widget>
+  <action name="action_dayK">
+   <property name="text">
+    <string>日K</string>
+   </property>
+  </action>
+  <action name="action_weekK">
+   <property name="text">
+    <string>周K</string>
+   </property>
+  </action>
+  <action name="action_monthK">
+   <property name="text">
+    <string>月K</string>
+   </property>
+  </action>
+  <action name="action_quarterK">
+   <property name="text">
+    <string>季K</string>
+   </property>
+  </action>
+  <action name="action_yearK">
+   <property name="text">
+    <string>年K</string>
+   </property>
+  </action>
+  <action name="action_1min">
+   <property name="text">
+    <string>1分</string>
+   </property>
+  </action>
+  <action name="action_3min">
+   <property name="text">
+    <string>3分</string>
+   </property>
+  </action>
+  <action name="action_5min">
+   <property name="text">
+    <string>5分</string>
+   </property>
+   <property name="toolTip">
+    <string>5分</string>
+   </property>
+  </action>
+  <action name="action_10min">
+   <property name="text">
+    <string>10分</string>
+   </property>
+   <property name="toolTip">
+    <string>10分</string>
+   </property>
+  </action>
+  <action name="action_15min">
+   <property name="text">
+    <string>15分</string>
+   </property>
+   <property name="toolTip">
+    <string>15分</string>
+   </property>
+  </action>
+  <action name="action_30min">
+   <property name="text">
+    <string>30分</string>
+   </property>
+   <property name="toolTip">
+    <string>30分</string>
+   </property>
+  </action>
+  <action name="action_1h">
+   <property name="text">
+    <string>1小时</string>
+   </property>
+   <property name="toolTip">
+    <string>1小时</string>
+   </property>
+  </action>
+  <action name="action_2h">
+   <property name="text">
+    <string>2小时</string>
+   </property>
+   <property name="toolTip">
+    <string>2小时</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
