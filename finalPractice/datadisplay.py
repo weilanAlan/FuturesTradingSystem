@@ -36,7 +36,7 @@ class Ui_MainWindow(object):
         self.comboBox_contract.addItem("")
         self.horizontalLayout.addWidget(self.comboBox_contract)
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(20, 40, 1671, 891))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(20, 50, 1681, 881))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout_kline_graph = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout_kline_graph.setContentsMargins(0, 0, 0, 0)

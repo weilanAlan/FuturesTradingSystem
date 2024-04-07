@@ -71,9 +71,9 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>40</y>
-      <width>1671</width>
-      <height>891</height>
+      <y>50</y>
+      <width>1681</width>
+      <height>881</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_kline_graph"/>
