@@ -16,10 +16,11 @@ def print_hi(name):
                               ['foo', 'two', 'w', '4']])
     print(data)
     data.columns = ['a', 'b', 'c', 'd']
-    data.set_index('c', inplace=True)
+    # data.set_index('c', inplace=True)
     print(data)
-    data.reset_index(inplace=True)
-    print(data)
+    # data.reset_index(inplace=True)
+    d = data.loc[data['a'] == 'bar' and data['b'] == 'one']['c']
+    print(d)
 
 
 

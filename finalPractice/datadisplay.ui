@@ -71,12 +71,23 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>50</y>
+      <y>160</y>
       <width>1681</width>
-      <height>881</height>
+      <height>771</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_kline_graph"/>
+   </widget>
+   <widget class="QWidget" name="verticalLayoutWidget_2">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>40</y>
+      <width>1681</width>
+      <height>111</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_dateframe"/>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

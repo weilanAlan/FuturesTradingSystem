@@ -9,6 +9,7 @@ import pandas as pd
 import tushare as ts  # 量化分析数据库
 import os  # 用于文件操作
 import json  # 用于保存导出我们记录的操作
+import re
 
 TOTAL_ASSETS = 1000000  # 个人资产
 PATH_BAK = 'myfile.json'
@@ -17,15 +18,16 @@ data_all = []
 tmplist = []
 codelist = ['RB888', 'RB99', 'SA99', 'SA888', 'jm888', 'jm99']  # 存储期货代码
 codename = ['螺纹钢指数', '螺纹钢主连', '纯碱主连', '纯碱指数', '焦煤指数', '焦煤主连']
-dict_code = {'RB888':'螺纹钢指数', 'RB99':'螺纹钢主连', 'SA99':'纯碱主连', 'SA888':'纯碱指数', 'jm888':'焦煤指数', 'jm99':'焦煤主连'}
+dict_code = {'RB888': '螺纹钢指数', 'RB99': '螺纹钢主连', 'SA99': '纯碱主连', 'SA888': '纯碱指数', 'jm888': '焦煤指数',
+             'jm99': '焦煤主连'}
 remain = TOTAL_ASSETS  # 剩余资产
 columns = ("时间", "代码", "名称", "开平", "持仓", "价位")
 
 
 class tradeDemo:
-    def __init__(self, symbol, current_whole_df):
-        self.symbol = symbol
-        self.current_whole_df = current_whole_df  # symbol下，时间边界选择之后的数据
+    def __init__(self, symbol, df):
+        self.symbol = symbol  # 当前选择的symbol
+        self.df = df  # columns=['symbol', 'datetime', 'close']每一个合约的最新价
 
         self.gui = tkinter.Tk()
         self.gui.title('模拟交易界面')
@@ -38,16 +40,20 @@ class tradeDemo:
         frame3 = tkinter.LabelFrame(self.gui, text="交易历史", width=1500, height=400)
         frame3.place(x=0, y=400)
 
-
         ## 市场情况框架中的控件
         # 1.合约
         l1_symbol = tkinter.Label(frame1, text='合约:')
         l1_symbol.place(x=10, y=5)
-        self.s11 = tkinter.StringVar()
-        self.s11.set(str(self.symbol))
-        l1 = tkinter.Label(frame1, textvariable=self.s11, width=10, height=1, bg='white', anchor='w',
-                           font=("Courier", 11, "italic"))
-        l1.place(x=70, y=5)
+        self.combo_box = ttk.Combobox(frame1, values=codelist, width=10)
+        self.combo_box.pack()
+        self.combo_box.current(codelist.index(self.symbol))  # 将当前symbol设置为默认选项
+        self.combo_box.bind("<<ComboboxSelected>>", self.change_symbol)
+        self.combo_box.place(x=70, y=5)
+        # self.s11 = tkinter.StringVar()
+        # self.s11.set(str(self.symbol))
+        # l1 = tkinter.Label(frame1, textvariable=self.s11, width=10, height=1, bg='white', anchor='w',
+        #                    font=("Courier", 11, "italic"))
+        # l1.place(x=70, y=5)
         # 2.手数
         l2_shoushu = tkinter.Label(frame1, text='1手：')
         l2_shoushu.place(x=260, y=5)
@@ -60,8 +66,15 @@ class tradeDemo:
         l3_currentPrice = tkinter.Label(frame1, text='现价：')
         l3_currentPrice.place(x=510, y=5)
         self.s13 = tkinter.StringVar()
-        print(self.current_whole_df.iloc[-1]['closePrice'])
-        self.s13.set(str(self.current_whole_df.iloc[-1]['closePrice']))
+        # str_series = self.df.loc[self.df['symbol'] == self.symbol, 'close'].to_string()
+        # str_without_index = re.sub(r'\n.*\n', '\n', str_series)
+        # print(df)
+        # print(str_series)
+        # print(str_without_index)
+        # self.s13.set(str_without_index)
+        s_str = self.df.loc[self.df['symbol'] == self.symbol, 'close'].astype(str)
+        s_values = s_str.values
+        self.s13.set(s_values[0])
         l3 = tkinter.Label(frame1, textvariable=self.s13, width=10, height=1, bg='white', anchor='w',
                            font=("Courier", 11, "italic"))
         l3.place(x=570, y=5)
@@ -168,12 +181,17 @@ class tradeDemo:
     def execOpduo(self):
         print("买多")
         global remain
-        max = remain // int(self.current_whole_df.iloc[-1]['closePrice'] * 100)  # 设定交易手数的上限，如果余额不足则不予交易（最少交易一手=100股）
-        res = askinteger(self.symbol, "买入/手：", initialvalue=1, minvalue=1, maxvalue=max)
+        s_str = self.df.loc[self.df['symbol'] == self.symbol].astype(str)
+        s_values = s_str.values
+        max = remain // int(float(s_values[0][2]) * 100)  # 设定交易手数的上限，如果余额不足则不予交易（最少交易一手=100股）
+        prompt = "合约:  {symbol} \n类型:  开多仓 \n价格:  {price} \n手数:  ".format(symbol=self.symbol, price=float(s_values[0][2]))
+        res = askinteger("买多确认", prompt, initialvalue=1, minvalue=1, maxvalue=max)
+        res.geometry("100x100")
         if res:
-            remain = remain - res * int(float(self.current_whole_df.iloc[-1]['closePrice']) * 100)
-            dict = {'remain':remain, '时间':self.current_whole_df.iloc[-1]['tradeDate'], '代码':self.symbol,
-                    '名称':dict_code[self.symbol], '开平':"多开", '持仓':res, '价位':self.current_whole_df.iloc[-1]['closePrice']}
+            remain = remain - res * int(float(s_values[0][2]) * 100)
+            dict = {'remain': remain, '时间': s_values[0][1], '代码': self.symbol,
+                    '名称': dict_code[self.symbol], '开平': "多开", '持仓': res,
+                    '价位': float(s_values[0][2])}
             # dict['remain'] = remain
             # dict['时间'] = self.current_whole_df.iloc[-1]['tradeDate']
             # dict['代码'] = self.symbol
@@ -188,10 +206,8 @@ class tradeDemo:
         else:
             print('取消买入！')
 
-
     def execOpkong(self):
         print("买空")
-
 
     def execOpping(self):
         print("平仓")
@@ -206,11 +222,11 @@ class tradeDemo:
             self.tree.delete(item)
         for i in self.old_dict:
             self.tree.insert('', index, values=(i['时间'], i['代码'], i['名称'], i['开平'], i['持仓'], i['价位']))
-            position += int(float(i['价位'])*100) * i['持仓']
+            position += int(float(i['价位']) * 100) * i['持仓']
             index += 1
         # 更新frame2统计数据
         ratio = 0
-        ratio = (position+remain-TOTAL_ASSETS)/TOTAL_ASSETS
+        ratio = (position + remain - TOTAL_ASSETS) / TOTAL_ASSETS
         self.s2.set(str(position + remain))  # 总资产=总持仓+剩余资产
         self.s3.set(format(ratio, '.2%'))  # 总盈亏=(总资产-启动资金)/启动资金
         self.s4.set(str(remain))
@@ -222,10 +238,15 @@ class tradeDemo:
             self.s7.set('韭皇')
         elif ratio > -0.2 and ratio <= 0:
             self.s7.set('小韭菜')
-        elif ratio > 0 and ratio <=0.2:
+        elif ratio > 0 and ratio <= 0.2:
             self.s7.set('股仔')
         elif ratio > 0.2 and ratio <= 1:
             self.s7.set('股尊')
         elif ratio > 1:
             self.s7.set('股神')
 
+    def change_symbol(self, aaa):
+        self.symbol = self.combo_box.get()
+        s_str = self.df.loc[self.df['symbol'] == self.symbol, 'close'].astype(str)
+        s_values = s_str.values
+        self.s13.set(s_values[0])
