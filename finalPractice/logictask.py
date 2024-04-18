@@ -42,13 +42,17 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.title_label = QtWidgets.QLabel('合约名称')
         self.title_label.setAlignment(Qt.AlignCenter)
         left_tip = QtWidgets.QLabel('左边界：')
-        self.left_point = QtWidgets.QDateEdit()
-        self.left_point.setDisplayFormat('yyyy-MM-dd')
+        # self.left_point = QtWidgets.QDateEdit()
+        # self.left_point.setDisplayFormat('yyyy-MM-dd')
+        self.left_point = QtWidgets.QDateTimeEdit()
         self.left_point.setCalendarPopup(True)
+        self.left_point.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
         right_tip = QtWidgets.QLabel('右边界：')
-        self.right_point = QtWidgets.QDateEdit()
-        self.right_point.setDisplayFormat('yyyy-MM-dd')
+        # self.right_point = QtWidgets.QDateEdit()
+        # self.right_point.setDisplayFormat('yyyy-MM-dd')
+        self.right_point = QtWidgets.QDateTimeEdit()
         self.right_point.setCalendarPopup(True)
+        self.right_point.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
         duration_sel_btn = QtWidgets.QPushButton('确定')
         duration_sel_btn.clicked.connect(self.duration_sel_btn_clicked)
         duration_trade_btn = QtWidgets.QPushButton('下单')
@@ -90,14 +94,16 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # self.verticalLayout_dateframe.setStretch(1, 1)
         # self.verticalLayout_dateframet.setStretch(2, 1)
         # self.verticalLayout_dateframe.setStretch(3, 10)
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addLayout(self.verticalLayout_dateframe)
-        self.layout.addLayout(self.verticalLayout_kline_graph)
-        self.verticalLayout_dateframe.setStretch(0, 1)
-        self.verticalLayout_dateframe.setStretch(1, 6)
+        # self.layout = QtWidgets.QVBoxLayout()
+        # self.layout.addLayout(self.verticalLayout_dateframe)
+        # self.layout.addLayout(self.verticalLayout_kline_graph)
+        # self.verticalLayout_dateframe.setStretch(0, 1)
+        # self.verticalLayout_dateframe.setStretch(1, 6)
+        # self.layout.setStretch(0, 1)
+        # self.layout.setStretch(1, 6)
         # 设置间距
         # self.layout.setSpacing(2)
-        self.setLayout(self.layout)
+        # self.setLayout(self.layout)
         # mainwidget = QWidget()
         # mainwidget.setLayout(self.layout)
         # self.setCentralWidget(mainwidget)
@@ -218,8 +224,10 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         self.whole_duration_label.setText(
             f"原始边界：{self.current_data.iloc[0]['datetime']}~{self.current_data.iloc[-1]['datetime']}")
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        # left_point = self.left_point.date().toString('yyyy-MM-dd')
+        # right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -239,8 +247,10 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     #  点击时间边界确认按钮
     def duration_sel_btn_clicked(self):
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        # left_point = self.left_point.date().toString('yyyy-MM-dd')
+        # right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         self.getCurrentData()
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
@@ -248,6 +258,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         if len(self.current_data) == 0:
             reply = QMessageBox.about(self, "警告", "该时间段内无交易信息，请另选时间。")
+        elif len(self.current_data) < 2:
+            reply = QMessageBox.about(self, "警告", "数据少于2个，无法作图。")
         else:
             self.statusbar.showMessage("1分钟k")
             self.now_duration_label.setText(
@@ -270,8 +282,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_dayK(self):
         self.statusbar.showMessage("日k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -303,8 +315,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_weekK(self):
         self.statusbar.showMessage("周k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -343,8 +355,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_monthK(self):
         self.statusbar.showMessage("月k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -383,8 +395,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_quarterK(self):
         self.statusbar.showMessage("季k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -423,8 +435,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_yearK(self):
         self.statusbar.showMessage("年k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -463,8 +475,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_1min(self):
         self.statusbar.showMessage("1分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -482,8 +494,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_3min(self):
         self.statusbar.showMessage("3分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -515,8 +527,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_5min(self):
         self.statusbar.showMessage("5分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -548,8 +560,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_10min(self):
         self.statusbar.showMessage("10分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -581,8 +593,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_15min(self):
         self.statusbar.showMessage("15分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -614,8 +626,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_30min(self):
         self.statusbar.showMessage("30分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -647,8 +659,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_1h(self):
         self.statusbar.showMessage("1小时k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
@@ -680,8 +692,8 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def select_2h(self):
         self.statusbar.showMessage("2小时k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
-        left_point = self.left_point.date().toString('yyyy-MM-dd')
-        right_point = self.right_point.date().toString('yyyy-MM-dd')
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
         df['o_date'] = pd.to_datetime(df['datetime'])
         if len(df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]) == 0:  # 没有设定过时间,取默认个数
