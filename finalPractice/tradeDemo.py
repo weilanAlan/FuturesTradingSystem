@@ -14,6 +14,7 @@ import os  # 用于文件操作
 import json  # 用于保存导出我们记录的操作
 import re
 
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
 TOTAL_ASSETS = 1000000  # 个人资产
@@ -35,8 +36,16 @@ columns2 = ("合约代码", "合约名称", "类型", "总仓", "开仓均价", 
 
 # self.old_dict:记录所有成交记录
 # self.old_dict2:记录计算而得的持仓数据
-class tradeDemo:
-    def __init__(self, symbol, df):
+class tradeDemo(QObject):
+    signal1 = pyqtSignal(dict)  # 交易点
+    signal2 = pyqtSignal(str, dict, dict)  # 双击持仓记录，显示持仓记录
+    # signal3 = pyqtSignal(str, dict, dict)  # 双击成交记录，显示持仓记录
+    signal_symbol = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+
+    def set_data(self, symbol, df):
         self.symbol = symbol  # 当前选择的symbol
         self.df = df  # columns=['symbol', 'datetime', 'close']每一个合约的最新价
 
@@ -240,7 +249,7 @@ class tradeDemo:
         self.tree.heading("成交量", text="成交量")
         self.tree.heading("成交价", text="成交价")
         self.tree.heading("平仓盈亏", text="平仓盈亏")
-        # self.tree.bind('<Double-1>', self.treeviewClick2)
+        self.tree.bind('<Double-1>', self.treeviewClick1)
         # self.tree.place(x=0, y=0)
         scrollbar_1_y.config(command=self.tree.yview)
         scrollbar_1_y.pack(side=RIGHT, fill=Y)
@@ -282,7 +291,7 @@ class tradeDemo:
         self.tree2.heading("总仓", text="总仓")
         self.tree2.heading("开仓均价", text="开仓均价")
         self.tree2.heading("逐笔盈亏", text="逐笔盈亏")
-        # self.tree.bind('<Double-1>', self.treeviewClick2)
+        self.tree2.bind('<Double-1>', self.treeviewClick2)
         # self.tree2.place(x=0, y=0)
         scrollbar_2_y.config(command=self.tree2.yview)
         scrollbar_2_y.pack(side=RIGHT, fill=Y)
@@ -400,6 +409,8 @@ class tradeDemo:
             print(showinfo(title="提示",
                            message=dict['合约名称'] + self.symbol + ' ' + dict['类型'] + ' ' + str(
                                dict['成交量']) + "手。"))
+            # 每次开多或者开空都向主页传参，显示交易点
+            self.signal1.emit(dict)  # 发射信号
             window.destroy()
 
     def noduo(self, window):
@@ -492,6 +503,8 @@ class tradeDemo:
             print(showinfo(title="提示",
                            message=dict['合约名称'] + self.symbol + ' ' + dict['类型'] + ' ' + str(
                                dict['成交量']) + "手。"))
+            # 每次开多或者开空都向主页传参，显示交易点
+            self.signal1.emit(dict)  # 发射信号
             window.destroy()
 
     def nokong(self, window):
@@ -939,3 +952,39 @@ class tradeDemo:
         self.s15.set(s_values[0])
         self.s16.set(
             str(round(dict_tradeunit[self.symbol] * float(s_values[0]) * dict_marginratio[self.symbol])) + ' 元')
+        # 每次改变合约都向主页传参，主页也要改变合约
+        self.signal_symbol.emit(self.symbol)  # 发射信号
+
+    def treeviewClick1(self, event):
+        dict = {}
+        dict2 = {}
+        symbol_name = None
+        for item in self.tree.selection():
+            #  values=(i['成交时间'], i['合约代码'], i['合约名称'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
+            item_text = self.tree.item(item, "values")
+            symbol_name = item_text[1]
+        for i in self.old_dict2:
+            if i['合约代码'] == symbol_name and i['类型'] == '多':
+                dict = i
+            if i['合约代码'] == symbol_name and i['类型'] == '空':
+                dict2 = i
+        # 每次双击某条持仓记录都向主页传参，显示持仓记录
+        self.signal2.emit(symbol_name, dict, dict2)  # 发射信号
+
+    def treeviewClick2(self, event):
+        dict = {}
+        dict2 = {}
+        for item in self.tree2.selection():
+            # values = (i['合约代码'], i['合约名称'], i['类型'], i['总仓'], i['开仓均价'], i['逐笔盈亏']))
+            item_text = self.tree2.item(item, "values")
+            dict = {'合约代码': item_text[0], '合约名称': item_text[1], '类型': item_text[2], '总仓': item_text[3],
+                         '开仓均价':item_text[4], '逐笔盈亏': item_text[5]}
+        for i in self.old_dict2:
+            if i['合约代码'] == dict['合约代码'] and i['类型'] != dict['类型']:
+                dict2 = i
+                break
+        # 每次双击某条持仓记录都向主页传参，显示持仓记录
+        self.signal2.emit(dict['合约代码'], dict, dict2)  # 发射信号
+
+
+

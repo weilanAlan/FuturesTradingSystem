@@ -14,81 +14,72 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="layoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>10</y>
-      <width>226</width>
-      <height>26</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label_contract">
-       <property name="text">
-        <string>金融期货合约：</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_contract">
-       <item>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="label_contract">
         <property name="text">
-         <string>RB888</string>
+         <string>金融期货合约：</string>
         </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>RB99</string>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBox_contract">
+        <item>
+         <property name="text">
+          <string>RB888</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RB99</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>SA99</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>SA888</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>jm888</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>jm99</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
         </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>SA99</string>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>90</width>
+          <height>20</height>
+         </size>
         </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>SA888</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>jm888</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>jm99</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>160</y>
-      <width>1681</width>
-      <height>771</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout_kline_graph"/>
-   </widget>
-   <widget class="QWidget" name="verticalLayoutWidget_2">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>40</y>
-      <width>1681</width>
-      <height>111</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout_dateframe"/>
-   </widget>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout_dateframe"/>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout_kline_graph"/>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

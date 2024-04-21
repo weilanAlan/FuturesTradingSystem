@@ -4,7 +4,7 @@ import pyqtgraph as pg
 
 color_table = {'line_desc': 'green'}
 
-#  成交量
+# 持仓量
 class VolItem(pg.GraphicsObject):
     def __init__(self, data):
         pg.GraphicsObject.__init__(self)
