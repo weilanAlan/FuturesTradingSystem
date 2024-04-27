@@ -1108,14 +1108,22 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
             # self.line_tradepoint = pg.InfiniteLine(angle=0, movable=False)
             # self.label_tradepoint = pg.TextItem()
             # self.line_tradepoint.setPos(self.hline_tradepoint_dict['成交价'])
-            if self.hline_tradepoint_dict['类型'] == '买开':
-                html_str = str(self.hline_tradepoint_dict['成交量']) + "手开多  " + str(self.hline_tradepoint_dict['成交价'])
+            if self.hline_tradepoint_dict['类型'] == '买开' or self.hline_tradepoint_dict['类型'] == '买平':
+                if self.hline_tradepoint_dict['类型'] == '买开':
+                    html_str = str(self.hline_tradepoint_dict['成交价']) + '  买多' + str(self.hline_tradepoint_dict['成交量']) + "手"
+                else:
+                    html_str = str(self.hline_tradepoint_dict['成交价']) + '  平空' + str(self.hline_tradepoint_dict['成交量']) + "手"
                 self.line_tradepoint = pg.InfiniteLine(pos=(0, self.hline_tradepoint_dict['成交价']), movable=False, angle=0, pen=self.color_kai,
                                       label=html_str,
                                       labelOpts={'position': 0.05, 'color': (255, 255, 255), 'movable': True,
                                                  'fill': (self.color_kai[0], self.color_kai[1], self.color_kai[2], 150)})
             else:
-                html_str = str(self.hline_tradepoint_dict['成交量']) + "手开空  " + str(self.hline_tradepoint_dict['成交价'])
+                if self.hline_tradepoint_dict['类型'] == '卖开':
+                    html_str = str(self.hline_tradepoint_dict['成交价']) + '  卖空' + str(
+                        self.hline_tradepoint_dict['成交量']) + "手"
+                else:
+                    html_str = str(self.hline_tradepoint_dict['成交价']) + '  平多' + str(
+                        self.hline_tradepoint_dict['成交量']) + "手"
                 self.line_tradepoint = pg.InfiniteLine(pos=(0, self.hline_tradepoint_dict['成交价']), movable=False,
                                                        angle=0, pen=self.color_kong,
                                                        label=html_str,
@@ -1136,7 +1144,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
                                                         labelOpts={'position': 0.1, 'color': (255, 255, 255),
                                                                    'movable': True, 'fill': (205, 192, 176, 150)})
             self.pw.addItem(self.line_chicang_record, ignoreBounds=True)
-
         if self.chicang_record2:
             html_str = str(self.chicang_record2['总仓']) + "手" + self.chicang_record2['类型'] + '单  ' \
                        + str(self.chicang_record2['开仓均价']) + '  ' + str(self.chicang_record2['逐笔盈亏'])

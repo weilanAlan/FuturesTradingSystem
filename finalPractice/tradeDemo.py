@@ -7,15 +7,20 @@ from tkinter import messagebox
 from tkinter.messagebox import showerror, showinfo
 from tkinter.simpledialog import askinteger
 from tkinter.ttk import Separator
-
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import tushare as ts  # 量化分析数据库
 import os  # 用于文件操作
 import json  # 用于保存导出我们记录的操作
 import re
-
+import requests
+import time
+import calendar
+import ctypes
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
+from matplotlib import pyplot as plt
+
 
 TOTAL_ASSETS = 1000000  # 个人资产
 PATH_BAK = 'myfile.json'
@@ -34,6 +39,106 @@ columns1 = ("成交时间", "合约代码", "合约名称", "类型", "成交量
 columns2 = ("合约代码", "合约名称", "类型", "总仓", "开仓均价", "逐笔盈亏")  # 持仓记录
 
 
+class CalendarApp:
+    def __init__(self, master, list_dateindex, list_yingkui):
+        self.master = master
+        self.list_dateindex = list_dateindex
+        self.list_yingkui = list_yingkui
+        self.current_year = self.list_dateindex[0][0:4]  # 以交易的第一天为当前显示时间
+        self.current_month = self.list_dateindex[0][5:7]
+        self.today = (self.current_year, self.current_month)
+        self.calendar_frame = Frame(self.master)  # 日历显示
+        self.calendar_frame.place(x=160, y=140)
+        self.sum_frame = Frame(self.master)  # sum盈亏显示
+        self.sum_frame.place(x=375, y=793)
+        self.create_calendar()
+
+    def create_calendar(self):
+        self.calendar_frame.destroy()
+        self.sum_frame.destroy()
+        self.calendar_frame = Frame(self.master)
+        self.calendar_frame.place(x=160, y=140)
+        self.sum_frame = Frame(self.master)
+        self.sum_frame.place(x=375, y=793)
+
+        # 年份和月份选择、按钮
+        year_var = StringVar(value=str(self.current_year))
+        year_label = Label(self.calendar_frame, text="年份：")
+        year_label.grid(row=0, column=0, padx=1)
+        self.year_entry = Entry(self.calendar_frame, width=5, textvariable=year_var)
+        self.year_entry.grid(row=0, column=1, padx=3)
+        month_var = StringVar(value=str(self.current_month))
+        month_label = Label(self.calendar_frame, text="月份：")
+        month_label.grid(row=0, column=2, padx=1)
+        self.month_entry = Entry(self.calendar_frame, width=4, textvariable=month_var)
+        self.month_entry.grid(row=0, column=3, padx=3)
+        button_ok = tkinter.Button(self.calendar_frame, text='确认', command=self.queryok)
+        button_ok.grid(row=0, column=4, padx=2)
+        button_next = tkinter.Button(self.calendar_frame, text='下一月', command=self.nextmonth)
+        button_next.grid(row=0, column=5)
+
+        # 日历显示
+        days = calendar.monthcalendar(int(year_var.get()),
+                                      int(month_var.get()))  # 形如[[0, 0, 1, 2, 3, 4, 5],..., [27, 28, 29, 30, 31, 0, 0]]
+        weekday_names = ["一", "二", "三", "四", "五", "六", "日"]
+        sum_month_yingkui = 0
+        for i, name in enumerate(weekday_names):
+            label = Label(self.calendar_frame, text=name, font=("Arial", 16))
+            label.grid(row=1, column=i, sticky=(E, W))
+        for i, week in enumerate(days):
+            for j, day in enumerate(week):
+                if day == 0:
+                    continue
+                s = str(year_var.get()) + '-' + str(month_var.get()) + '-'
+                if day < 10:
+                    s += '0'
+                s += str(day)
+                if s in self.list_dateindex:
+                    num = self.list_dateindex.index(s)
+                    sum_month_yingkui += self.list_yingkui[num]
+                    if self.list_yingkui[num] > 0:
+                        day_label = Label(self.calendar_frame, text=str(day) + '\n' + str(int(self.list_yingkui[num])),
+                                          font=("Arial", 11), bg='#EE6363', width=6, height=4)
+                    elif self.list_yingkui[num] < 0:
+                        day_label = Label(self.calendar_frame, text=str(day) + '\n' + str(int(self.list_yingkui[num])),
+                                          font=("Arial", 11), bg='#2E8B57', width=6, height=4)
+                    else:
+                        day_label = Label(self.calendar_frame, text=str(day) + '\n' + str(int(self.list_yingkui[num])),
+                                          font=("Arial", 11), width=6, height=4)
+                else:
+                    day_label = Label(self.calendar_frame, text=str(day) + '\n' + ' ', font=("Arial", 12), width=6,
+                                      height=4)
+                day_label.grid(row=i + 2, column=j, sticky=(E, W, N, S))
+
+        label_sum = Label(self.sum_frame, text=str(int(self.current_month)) + '月累计收益：', font=("微软雅黑", 12))
+        if sum_month_yingkui == 0:
+            label_value = Label(self.sum_frame, text=str(round(sum_month_yingkui, 2)), font=("微软雅黑", 12))
+        elif sum_month_yingkui > 0:
+            label_value = Label(self.sum_frame, text=str(round(sum_month_yingkui, 2)), fg='red', font=("微软雅黑", 12))
+        else:
+            label_value = Label(self.sum_frame, text=str(round(sum_month_yingkui, 2)), fg='green', font=("微软雅黑", 12))
+        label_sum.grid(row=0, column=2)
+        label_value.grid(row=0, column=3)
+
+    def queryok(self):
+        self.current_year = self.year_entry.get()
+        self.current_month = self.month_entry.get()
+        self.create_calendar()
+
+    def nextmonth(self):
+        current_month = int(self.month_entry.get())
+        if current_month == 12:
+            self.current_year = str(int(self.year_entry.get()) + 1)
+            self.current_month = '01'
+        else:
+            current_month += 1
+            if current_month < 10:
+                self.current_month = '0' + str(current_month)
+            else:
+                self.current_month = str(current_month)
+        self.create_calendar()
+
+
 # self.old_dict:记录所有成交记录
 # self.old_dict2:记录计算而得的持仓数据
 class tradeDemo(QObject):
@@ -48,6 +153,7 @@ class tradeDemo(QObject):
     def set_data(self, symbol, df):
         self.symbol = symbol  # 当前选择的symbol
         self.df = df  # columns=['symbol', 'datetime', 'close']每一个合约的最新价
+        self.app = None
 
         self.gui = tkinter.Tk()
         self.gui.title('模拟交易界面')
@@ -637,6 +743,7 @@ class tradeDemo(QObject):
                 new_window.geometry("500x220")
                 frame_kong.place(x=5, y=50)
             else:
+                new_window.destroy()
                 print(showerror(title="警告", message="该合约无持仓可平。"))
 
         new_window.mainloop()
@@ -701,6 +808,8 @@ class tradeDemo(QObject):
             print(showinfo(title="提示",
                            message=dict['合约名称'] + self.symbol + ' ' + dict['类型'] + ' ' + str(
                                dict['成交量']) + "手。"))
+            # 每次开多或者开空或平多或平空都向主页传参，显示交易点
+            self.signal1.emit(dict)  # 发射信号
             window.destroy()
 
     # 取消平多（卖平）
@@ -766,6 +875,8 @@ class tradeDemo(QObject):
             self.getCurrentData()
             print(showinfo(title="提示", message=dict['合约名称'] + self.symbol + ' ' + dict['类型'] + ' ' + str(
                 dict['成交量']) + "手。"))
+            # 每次开多或者开空或平多或平空都向主页传参，显示交易点
+            self.signal1.emit(dict)  # 发射信号
             window.destroy()
 
     # 取消平空（买平）
@@ -774,7 +885,246 @@ class tradeDemo(QObject):
 
     # 账户分析
     def execOpanalyze(self):
-        print("账户分析")
+        # 新的弹窗
+        new_window = tkinter.Toplevel(self.gui)
+        new_window.geometry("960x850")
+        new_window.title("账户分析")
+
+        # 计算数据
+        position = 0  # 总持仓资金,总市值,总持仓
+        for i in self.old_dict:
+            s_str = self.df.loc[self.df['symbol'] == self.symbol].astype(str)
+            s_values = s_str.values
+            currentprice = float(s_values[0][2])
+            if i['类型'] == "买开" or i['类型'] == "卖开":
+                position += dict_tradeunit[i['合约代码']] * currentprice * dict_marginratio[i['合约代码']] * i['成交量']
+        self.old_dict2 = []  # 用于记录计算而得的持仓数据
+        # 对每一个合约，计算持仓数据（多+空）
+        profitandloss = 0
+        for i in codelist:
+            dict_duo = {}  # 记录代码为i 买开的
+            dict_kong = {}  # 记录代码为i 卖开的
+            num_duo = 0
+            num_kong = 0
+            average_price_duo = 0
+            average_price_kong = 0
+            profitandloss_duo = 0
+            profitandloss_kong = 0
+            s_stri = self.df.loc[self.df['symbol'] == i].astype(str)
+            s_valuesi = s_stri.values
+            currentpricei = float(s_valuesi[0][2])
+            for j in self.old_dict:
+                if j['合约代码'] == i:
+                    if j['类型'] == '买开':
+                        num_duo += (j['成交量'] - j['已平仓手数'])
+                        average_price_duo += (j['成交量'] - j['已平仓手数']) * j['成交价']
+                        profitandloss_duo += (j['成交量'] - j['已平仓手数']) * (currentpricei - j['成交价']) * \
+                                             dict_tradeunit[j['合约代码']]
+                    if j['类型'] == '卖开':
+                        num_kong += (j['成交量'] - j['已平仓手数'])
+                        average_price_kong += (j['成交量'] - j['已平仓手数']) * j['成交价']
+                        profitandloss_kong += (j['成交量'] - j['已平仓手数']) * (j['成交价'] - currentpricei) * \
+                                              dict_tradeunit[j['合约代码']]
+            if num_duo != 0:
+                dict_duo = {'合约代码': i, '合约名称': dict_codename[i], '类型': '多', '总仓': num_duo,
+                            '开仓均价': round(average_price_duo / num_duo, 2), '逐笔盈亏': round(profitandloss_duo, 2)}
+                self.old_dict2.append(dict_duo)
+                profitandloss += profitandloss_duo
+            if num_kong != 0:
+                dict_kong = {'合约代码': i, '合约名称': dict_codename[i], '类型': '空', '总仓': num_kong,
+                             '开仓均价': round(average_price_kong / num_kong, 2),
+                             '逐笔盈亏': round(profitandloss_kong, 2)}
+                self.old_dict2.append(dict_kong)
+                profitandloss += profitandloss_kong
+
+        # 1.标题
+        label_top = tkinter.Label(new_window, text='盈亏', font=("微软雅黑", 12))
+        label_top.pack()
+        value_yingkui = round(position + remain - TOTAL_ASSETS, 2)
+        ratio_yingkui = (position + remain - TOTAL_ASSETS) / TOTAL_ASSETS
+        if value_yingkui >= 0:
+            label_value_yingkui = tkinter.Label(new_window, text=str(value_yingkui), font=("微软雅黑", 20), fg="red")
+            label_ratio_name = tkinter.Label(new_window, text="收益率：" , font=("微软雅黑", 10))
+            label_ratio_yingkui = tkinter.Label(new_window, text=format(ratio_yingkui, '.2%'), font=("微软雅黑", 10), fg="red")
+        else:
+            label_value_yingkui = tkinter.Label(new_window, text=str(value_yingkui), font=("微软雅黑", 20), fg="green")
+            label_ratio_name = tkinter.Label(new_window, text="收益率：", font=("微软雅黑", 10))
+            label_ratio_yingkui = tkinter.Label(new_window, text=format(ratio_yingkui, '.2%'), font=("微软雅黑", 10), fg="green")
+        label_value_yingkui.pack()
+        label_ratio_name.place(x=430,y=95)
+        label_ratio_yingkui.place(x=500, y=95)
+        button_chengjiao = tkinter.Button(new_window, text='成交明细', command=self.analyze_chengjiaomingxi)
+        button_chengjiao.place(x=850, y=30)
+        button_chengjiao.config(bg='white')
+
+        # 2.切换图表的按钮
+        fig = plt.figure(figsize=(6.4, 5), dpi=100)
+        canvas = FigureCanvasTkAgg(fig, new_window)  # 将fig与窗体关联
+        self.button_kind_structure = tkinter.Button(new_window, text='品种结构', command=lambda: self.analyze_kind_structure(fig, canvas))
+        self.button_kind_structure.place(x=10, y=95)
+        self.button_kind_yingkui = tkinter.Button(new_window, text='品种盈亏', command=lambda: self.analyze_kind_yingkui(fig, canvas))
+        self.button_kind_yingkui.place(x=150, y=95)
+        self.button_kind_calendar = tkinter.Button(new_window, text='盈亏日历', command=lambda: self.analyze_kind_calendar(fig, canvas, new_window))
+        self.button_kind_calendar.place(x=290, y=95)
+        self.button_kind_structure.config(bg='white')
+        self.button_kind_yingkui.config(bg='white')
+        self.button_kind_calendar.config(bg='white')
+
+        # 3.画布
+        canvas.get_tk_widget().pack()
+        canvas.get_tk_widget().place(x=0, y=140)
+        self.analyze_kind_structure(fig, canvas)
+        new_window.mainloop()
+
+    def analyze_chengjiaomingxi(self):
+        # 新的弹窗
+        new_window = tkinter.Toplevel(self.gui)
+        new_window.geometry("900x650")
+        new_window.title("成交明细")
+
+        list_index = []
+        list_tree = []
+        for i in self.old_dict:
+            s = str(i['成交时间'])[0:10]
+            if s not in list_index:
+                list_index.append(s)
+
+        # 滚动条和treeviw
+        scrollbar_y = Scrollbar(new_window, orient=VERTICAL)
+        tree = ttk.Treeview(new_window, columns=('合约代码', '合约名称', '方向', '手数', '成交价', '逐笔平仓盈亏'),
+                            show="tree headings", displaycolumns="#all",  yscrollcommand = scrollbar_y.set)
+        tree.column("合约代码", width=100, anchor='center')
+        tree.column("合约名称", width=100, anchor='center')
+        tree.column("方向", width=100, anchor='center')
+        tree.column("手数", width=100, anchor='center')
+        tree.column("成交价", width=100, anchor='center')
+        tree.column("逐笔平仓盈亏", width=120, anchor='center')
+        tree.heading("合约代码", text="合约代码")
+        tree.heading("合约名称", text="合约名称")
+        tree.heading("方向", text="方向")
+        tree.heading("手数", text="手数")
+        tree.heading("成交价", text="成交价")
+        tree.heading("逐笔平仓盈亏", text="逐笔平仓盈亏")
+
+        # 根节点、子节点
+        tree.tag_configure('tag_sum', background="lightgrey")
+        root = tree.insert('', END, text="交易记录")
+        for i in range(len(list_index)):
+            list_tree.append(tree.insert(root, END, text=list_index[i]))
+        for i in self.old_dict:
+            for j in range(len(list_index)):
+                if list_index[j] in i['成交时间']:
+                    tree.insert(list_tree[j], END, values=(i['合约代码'], i['合约名称'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
+                    break
+        sum_shoushu = 0
+        sum_yingkui = 0
+        for i in range(len(list_index)):
+            shoushu = 0
+            yingkui = 0
+            for j in self.old_dict:
+                if list_index[i] in j['成交时间']:
+                    shoushu += j['成交量']
+                    if j['平仓盈亏'] != '-':
+                        yingkui += j['平仓盈亏']
+            tree.insert(list_tree[i], END, values=('总计', '', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
+            tree.insert(list_tree[i], END, values=('', '', '', '', '', ''))
+            sum_shoushu += shoushu
+            sum_yingkui += yingkui
+        tree.insert('', END, values=('', '', '', '', '', ''))
+        tree.insert('', END, values=('总计', '', '', sum_shoushu, '', round(sum_yingkui, 2)), tags='tag_sum')
+        scrollbar_y.config(command=tree.yview)
+        scrollbar_y.pack(side=RIGHT, fill=Y)
+        tree.pack(fill=BOTH, expand=True)
+        new_window.mainloop()
+
+    def analyze_kind_structure(self, fig, canvas):
+        self.button_kind_structure.config(bg='#CDC9C9')
+        self.button_kind_yingkui.config(bg='white')
+        self.button_kind_calendar.config(bg='white')
+        fig.clf()
+        canvas.draw()
+        if self.app:
+            self.app.calendar_frame.destroy()
+            self.app.sum_frame.destroy()
+        label = codelist  # 标签
+        fraces = []  # 值
+        fraces_percent = []  # 百分比
+        sum = 0
+        for i in codelist:
+            value = 0
+            for j in self.old_dict:
+                if j['合约代码'] == i:
+                    value += j['成交量'] * dict_tradeunit[i] * j['成交价'] * dict_marginratio[i]
+            sum += value
+            fraces.append(value)
+        for i in fraces:
+            fraces_percent.append(i / sum * 100)
+        labels = [f'{l}, {s:0.2f}%' for l, s in zip(label, fraces_percent)]
+        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 显示中文标签,处理中文乱码问题
+        plt.rcParams['axes.unicode_minus'] = False  # 坐标轴负号的处理
+        plt.axes(aspect='equal')  # 将横、纵坐标轴标准化处理，确保饼图是一个正圆，否则为椭圆
+        colors = ['#9ACD32', '#BC8F8F', '#B0C4DE', '#458B00', '#CD5C5C', '#8B7E66']  # 自定义颜色
+        plt.pie(x=fraces,  # 绘图数据
+                colors=colors,
+                autopct='%.2f%%',  # 饼图中添加数值标签
+                textprops={'fontsize': 6, 'color': 'black'},  # 设置文本标签的属性值
+                radius=1.2,  # 设置饼图半径
+                startangle=90,  # 设置饼图的初始角度
+                counterclock=False,  # 是否逆时针，这里设置为顺时针方向
+                )
+        plt.legend(labels, fontsize=8, loc='upper right', bbox_to_anchor=(1.3, 1.1))  # 第二个参数上大下小
+        plt.title("品种成交额占比", fontsize=13, loc='left')
+        canvas.draw()
+
+    def analyze_kind_yingkui(self, fig, canvas):
+        self.button_kind_structure.config(bg='white')
+        self.button_kind_yingkui.config(bg='#CDC9C9')
+        self.button_kind_calendar.config(bg='white')
+        fig.clf()
+        canvas.draw()
+        if self.app:
+            self.app.calendar_frame.destroy()
+            self.app.sum_frame.destroy()
+        label = codelist  # 标签
+        fraces = []  # 值
+        for i in codelist:
+            value = 0
+            for j in self.old_dict:
+                if j['合约代码'] == i and j['平仓盈亏'] != '-':
+                    value += float(j['平仓盈亏'])
+            fraces.append(value)
+        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 显示中文标签,处理中文乱码问题
+        plt.rcParams['axes.unicode_minus'] = False  # 坐标轴负号的处理
+        colors = ['#FF6347' if value >= 0 else '#43CD80' for value in fraces]
+        plt.bar(label, fraces, color=colors)
+        plt.ylim([min(fraces)-5000, max(fraces)+5000])
+        for x, y in zip(label, fraces):  # zip：分别赋值给x，y
+            if y >= 0:
+                plt.text(x, y, '%.2f' % y, ha='center', va='bottom')  # ha:hor
+            else:
+                plt.text(x, y-0.2, '%.2f' % y, ha='center', va='top')  # ha:hor , va='bottom'
+        plt.title("品种盈亏", fontsize=13, loc='left')
+        canvas.draw()
+
+    def analyze_kind_calendar(self, fig, canvas, window):
+        self.button_kind_structure.config(bg='white')
+        self.button_kind_yingkui.config(bg='white')
+        self.button_kind_calendar.config(bg='#CDC9C9')
+        fig.clf()
+        canvas.draw()
+        list_dateindex = []
+        list_yingkui = []  # 每日盈亏
+        for i in self.old_dict:
+            s = str(i['成交时间'])[0:10]
+            if s not in list_dateindex:
+                list_dateindex.append(s)
+        for i in list_dateindex:
+            value = 0
+            for j in self.old_dict:
+                if i in str(j['成交时间']) and j['平仓盈亏'] != '-':
+                    value += float(j['平仓盈亏'])
+            list_yingkui.append(value)
+        self.app = CalendarApp(window, list_dateindex, list_yingkui)
 
     # frame3_1中，按照所输入的条件进行筛选
     def yesquery1(self):
@@ -868,12 +1218,6 @@ class tradeDemo(QObject):
             self.tree.insert('', index,
                              values=(i['成交时间'], i['合约代码'], i['合约名称'], i['类型'], i['成交量'], i['成交价'],
                                      i['平仓盈亏']))
-            # if i['类型'] == '买开' or i['类型'] == '买平':
-            #     self.tree.tag_configure('buy', foreground='red')
-            #     self.tree.item('', tags=('buy',), values=(i['成交时间'], i['合约代码'], i['合约名称'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
-            # if i['类型'] == '卖开' or i['类型'] == '卖平':
-            #     self.tree.tag_configure('sell', foreground='green')
-            #     self.tree.item('4', tags=('sell',), values=(i['成交时间'], i['合约代码'], i['合约名称'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
             s_str = self.df.loc[self.df['symbol'] == self.symbol].astype(str)
             s_values = s_str.values
             currentprice = float(s_values[0][2])
