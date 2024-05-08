@@ -1,23 +1,17 @@
-import time
-import json
-
 from PyQt5.Qt import *
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 import pyqtgraph as pg
-import akshare as ak
 import numpy as np
 import pandas as pd
-import math
 import talib
 from typing import Dict, Any
 import sys
 from pyqtgraph import AxisItem
 import sqlite3
 from pandas.core.frame import DataFrame
-
-from finalPractice.CandlestickItem import CandlestickItem
-from finalPractice.SegmenttickItem import SegmenttickItem
-from finalPractice.VolItem import VolItem
+from toolClass.CandlestickItem import CandlestickItem
+from toolClass.VolItem import VolItem
+from finalPractice.quantitativeTradingDemo import quantitativeTradingDemo
 from finalPractice.tradeDemo import tradeDemo
 from finalPractice.datadisplay import Ui_MainWindow
 
@@ -38,11 +32,13 @@ class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
         self.setupUi(self)
-        self.read_db()  # 读取数据库
-        self.hline_tradepoint_dict = None
+        self.hline_tradepoint_dict = None # 从交易页面传来的数据们
         self.chicang_symbol = None
         self.chicang_record = None
         self.chicang_record2 = None
+
+        # 读取数据库
+        self.read_db()
 
         # 设置合约名称、时间边界、下单按钮
         self.label_contract.setStyleSheet("QLabel{color:rgb(0,0,0);font-size:15;font-weight:bold;font-family:宋体;}")
@@ -66,11 +62,11 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.check_box_average.stateChanged.connect(self.show_or_not_average)
         self.check_box_bulin.stateChanged.connect(self.show_or_not_bulin)
         duration_sel_btn = QtWidgets.QPushButton('确定')
-        # duration_sel_btn.setStyleSheet("QPushButton{color:rgb(0,0,0);font-size:15;font-weight:bold;font-family:宋体;}")
         duration_sel_btn.clicked.connect(self.duration_sel_btn_clicked)
         duration_trade_btn = QtWidgets.QPushButton('下单')
-        # duration_trade_btn.setStyleSheet("QPushButton{color:rgb(0,0,0);font-size:15;font-weight:bold;font-family:宋体;}")
         duration_trade_btn.clicked.connect(self.duration_trade_btn_clicked)
+        duration_qt_btn = QtWidgets.QPushButton('量化交易')
+        duration_qt_btn.clicked.connect(self.duration_qt_btn_clicked)
         self.whole_duration_label = QtWidgets.QLabel('所有范围：左边界~右边界')
         self.now_duration_label = QtWidgets.QLabel('当前范围：左边界~右边界')
 
@@ -78,7 +74,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.title_label.setText(symbol)
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
 
-        # 画默认的图(先只画前100个)verticalLayout_kline_graph 以及日期
+        # 画默认的图(先只画前100个)，放在verticalLayout_kline_graph
         graph = PyQtGraphLineWidget()
         self.whole_duration_label.setText(
             f"原始边界：{self.current_data.iloc[0]['datetime']}~{self.current_data.iloc[-1]['datetime']}")
@@ -100,12 +96,13 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         layout_date.addWidget(self.right_point)
         layout_date.addItem(spacerItem1)
         layout_date.addWidget(self.check_box_average)
-        # layout_date.addItem(spacerItem2)
         layout_date.addWidget(self.check_box_bulin)
         layout_date.addItem(spacerItem1)
         layout_date.addWidget(duration_sel_btn)
         layout_date.addItem(spacerItem2)
         layout_date.addWidget(duration_trade_btn)
+        layout_date.addItem(spacerItem2)
+        layout_date.addWidget(duration_qt_btn)
         layout_date.addItem(spacerItem1)
         layout_duration = QtWidgets.QHBoxLayout()
         layout_duration.addWidget(self.whole_duration_label)
@@ -115,12 +112,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout_dateframe.addWidget(self.title_label)
         self.verticalLayout_dateframe.addLayout(layout_date)
         self.verticalLayout_dateframe.addLayout(layout_duration)
-        # 设置间距
-        # self.layout.setSpacing(2)
-        # self.setLayout(self.layout)
-        # mainwidget = QWidget()
-        # mainwidget.setLayout(self.layout)
-        # self.setCentralWidget(mainwidget)
 
         # 切换合约
         self.comboBox_contract.currentIndexChanged.connect(self.select_contract)
@@ -150,8 +141,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # 连接
         conn = sqlite3.connect("C:/Users/12345/Desktop/FuturesTradingSystem/database/database.db")
         c = conn.cursor()
-        # 正常执行SQL查询
-        # c.execute("select * from dbbardata where symbol='%s'" % (symbol))
         c.execute("select * from dbbardata")
         rows = c.fetchall()  # rows返回所有记录，rows是一个二维列表
         self.data = DataFrame(rows)  # 所有数据
@@ -168,7 +157,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     # 数据处理及计算
     def dealwithData(self):
-        # df = ak.futures_zh_minute_sina(symbol=contract, period="1")
         df = pd.DataFrame(self.current_data, columns=['datetime', 'close', 'open', 'high', 'low', 'volume'])
         df.columns = ['tradeDate', 'closePrice', 'openPrice', 'highestPrice', 'lowestPrice', 'volume']  # 改列名
         # 计算均线
@@ -211,22 +199,15 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                                                slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
         df['kdj_j'] = 3 * df['kdj_k'] - 2 * df['kdj_d']
         df = df.round({'closePrice':2, 'openPrice':2, 'highestPrice':2, 'lowestPrice':2, 'volume':2})
-        #  封装数据
-        # whole_pd_header = ['tradeDate', 'closePrice', 'openPrice', 'highestPrice', 'lowestPrice', 'ma5', 'ma10', 'ma20',
-        #                    'ma30', 'ma60', 'volume', 'DIFF', 'DEA', 'MACD', 'kdj_k', 'kdj_d', 'kdj_j']
         whole_pd_header = ['tradeDate', 'closePrice', 'openPrice', 'highestPrice', 'lowestPrice', 'volume']
         line_data = {
-            'title_str': symbol,
             'whole_pd_header': whole_pd_header,
             'whole_pd_header_Chinese': ['日期', '收盘价', '开盘价', '最高价', '最低价', '成交量'],
             'whole_df': df
-            # # 需要展示的参数
-            # 'required_header': ['日期', '收盘价', '开盘价', '最高价', '最低价', '成交量'],
-            # 'required_pd_header': ['tradeDate', 'closePrice', 'openPrice', 'highestPrice', 'lowestPrice', 'volume']
         }
         return line_data
 
-    # 下拉框选择新的合约后触发（切换合约后时间按设定的，否则默认）
+    # 下拉框选择新的合约后触发
     def select_contract(self):
         self.statusbar.showMessage("1分钟k")
         global symbol
@@ -239,8 +220,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         self.whole_duration_label.setText(
             f"原始边界：{self.current_data.iloc[0]['datetime']}~{self.current_data.iloc[-1]['datetime']}")
-        # left_point = self.left_point.date().toString('yyyy-MM-dd')
-        # right_point = self.right_point.date().toString('yyyy-MM-dd')
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         df = self.current_data.copy()
@@ -261,8 +240,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     #  点击时间边界确认按钮
     def duration_sel_btn_clicked(self):
-        # left_point = self.left_point.date().toString('yyyy-MM-dd')
-        # right_point = self.right_point.date().toString('yyyy-MM-dd')
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         self.getCurrentData()
@@ -292,10 +269,26 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         df = pd.DataFrame(self.newest_data, columns=['symbol', 'datetime', 'close'])
         df = df.round({'close': 2})
         self.tradedemo = tradeDemo()
+        # 绑定信号与槽
         self.tradedemo.signal1.connect(self.receive_tradepoint)
-        self.tradedemo.signal2.connect(self.receive_chicang_record)
+        self.tradedemo.signal2.connect(self.receive_record)
         self.tradedemo.signal_symbol.connect(self.receive_new_symbol)
         self.tradedemo.set_data(symbol, df)
+
+    # 点击量化交易按钮
+    def duration_qt_btn_clicked(self):
+        left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
+        df = self.data.copy()
+        df['o_date'] = pd.to_datetime(df['datetime'])
+        data = None
+        data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
+        if len(data) == 0:
+            reply = QMessageBox.about(self, "警告", "该时间段内无交易信息，请另选时间。")
+        else:
+            self.qttradedemo = quantitativeTradingDemo()
+            self.qttradedemo.set_data(data, self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss'),
+                                      self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss'))
 
     def select_dayK(self):
         self.statusbar.showMessage("日k")
@@ -310,7 +303,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('D').agg({
             'open': 'first',
@@ -343,7 +335,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('D').agg({
             'open': 'first',
@@ -383,7 +374,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('D').agg({
             'open': 'first',
@@ -423,7 +413,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('D').agg({
             'open': 'first',
@@ -463,7 +452,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('D').agg({
             'open': 'first',
@@ -522,7 +510,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('3min').agg({
             'open': 'first',
@@ -555,7 +542,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('5min').agg({
             'open': 'first',
@@ -588,7 +574,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('10min').agg({
             'open': 'first',
@@ -621,7 +606,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('15min').agg({
             'open': 'first',
@@ -654,7 +638,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('30min').agg({
             'open': 'first',
@@ -687,7 +670,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('60min').agg({
             'open': 'first',
@@ -720,7 +702,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.current_data = None
             self.current_data = df.loc[(df['o_date'] >= left_point) & (df['o_date'] <= right_point)]
         self.current_data['datetime'] = pd.to_datetime(self.current_data['datetime'])
-        # self.current_data['datetime'] = self.current_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d'))
         self.current_data.set_index('datetime', inplace=True)
         self.current_data = self.current_data.resample('120min').agg({
             'open': 'first',
@@ -787,7 +768,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout_kline_graph.addWidget(graph)
         self.hline_tradepoint_dict = None
 
-    def receive_chicang_record(self, str, dict, dict2):
+    def receive_record(self, str, dict, dict2):
         self.chicang_symbol = str
         self.chicang_record = dict
         self.chicang_record2 = dict2
@@ -845,39 +826,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             codelist = ['RB888', 'RB99', 'SA99', 'SA888', 'jm888', 'jm99']  # 存储期货代码
             self.comboBox_contract.setCurrentIndex(codelist.index(str))
 
-'''
-#  日期横轴控件
-class RotateAxisItem(pg.AxisItem):
-    def drawPicture(self, p, axisSpec, tickSpecs, textSpecs):
-        p.setRenderHint(p.Antialiasing, False)
-        p.setRenderHint(p.TextAntialiasing, True)
-
-        #  draw long line along axis
-        pen, p1, p2 = axisSpec
-        p.setPen(pen)
-        p.drawLine(p1, p2)
-        p.translate(0.5, 0)  # resolves some damn pixel ambiguity
-
-        #  draw ticks
-        for pen, p1, p2 in tickSpecs:
-            p.setPen(pen)
-            p.drawLine(p1, p2)
-
-        #  draw all text
-        p.setPen(self.pen())
-        bounding = self.boundingRect().toAlignedRect()
-        p.setClipRect(bounding)
-        for rect, flags, text in textSpecs:
-            # this is the important part
-            p.save()
-            p.translate(rect.x(), rect.y())
-            p.rotate(-30)
-            p.drawText(-int(rect.width()), int(rect.height()), int(rect.width()), int(rect.height()), flags, text)
-            # restoring the painter is *required*!!!
-            p.restore()
-
-'''
-
 
 #  所有图表（K线图、均线、vol、macd、kdj）显示的控件
 #  self.whole_df:该symbol下、接收到的所有数据
@@ -888,8 +836,6 @@ class RotateAxisItem(pg.AxisItem):
 #  self.timer：定时器
 #  self.points:当前最近更新页面上绘制的30个（或更少）数据
 #  self.current_whole_df:边界选择之后的数据
-#  self.whole_duration_label:'原始边界：左边界~右边界'
-#  self.now_duration_label:'当前边界：左边界~右边界'
 class PyQtGraphLineWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -916,7 +862,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         self.whole_pd_header_Chinese = None  # 所有中文列名
         self.current_whole_data = None  # 所有列的数据，后续要操作
         self.points = None  # 当前最近更新页面上绘制的30个（或更少）数据
-        self.current_whole_df = None  # 边界选择之后的数据
         pass
 
     def init_ui(self):
@@ -925,7 +870,7 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         # self.timer.timeout.connect(self.newPointPlot)
 
         # 1.一些标题
-        self.vol_label = QtWidgets.QLabel('持仓量')
+        self.vol_label = QtWidgets.QLabel('成交量')
         self.vol_label.setAlignment(Qt.AlignLeft)
         self.vol_label.setStyleSheet("QLabel{color:rgb(0,0,0);font-size:15;font-weight:bold;font-family:宋体;}")
         self.kdj_label = QtWidgets.QLabel('KDJ')
@@ -937,7 +882,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         x.setHeight(h=20)
         self.pw = pg.PlotWidget(axisItems={'bottom': x})
         self.pw.setMouseEnabled(x=True, y=True)
-        # self.pw.enableAutoRange(x=False,y=True)
         self.pw.setAutoVisible(x=False, y=False)
 
         # 3.vol
@@ -945,45 +889,20 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         x2.setHeight(h=20)
         self.pw2 = pg.PlotWidget(axisItems={'bottom': x2})
         self.pw2.setMouseEnabled(x=True, y=False)
-        # self.pw2.enableAutoRange(x=False,y=True)
         self.pw2.setAutoVisible(x=False, y=True)
 
-        # 4.macd&kdj
-        # spacerItem1 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        # self.layout_button = QHBoxLayout()
-        # self.button_macd = QPushButton()
-        # self.button_macd.setText("MACD")
-        # self.button_kdj = QPushButton()
-        # self.button_kdj.setText("KDJ")
-        # self.button_macd.clicked.connect(self.button_macd_clicked)
-        # self.button_kdj.clicked.connect(self.button_kdj_clicked)
-        # self.layout_button.addWidget(self.button_macd)
-        # self.layout_button.addWidget(self.button_kdj)
-        # self.layout_button.addItem(spacerItem1)
-        # self.stackedwidget = QStackedWidget()
-        # self.stackedwidget.setCurrentIndex(0)
-
-        # x3 = AxisItem(orientation='bottom')  # macd x轴
-        # x3.setHeight(h=20)
-        # self.pw3 = pg.PlotWidget(axisItems={'bottom': x3})
-        # self.pw3.setMouseEnabled(x=True, y=False)
-        # self.pw3.setAutoVisible(x=False, y=True)
+        # 4.kdj
         x4 = AxisItem(orientation='bottom')  # kdj x轴
         x4.setHeight(h=20)
         self.pw4 = pg.PlotWidget(axisItems={'bottom': x4})
         self.pw4.setMouseEnabled(x=True, y=False)
         self.pw4.setAutoVisible(x=False, y=True)
-        # self.stackedwidget.addWidget(self.pw3)
-        # self.stackedwidget.addWidget(self.pw4)
 
         # 5.最后，加入布局
         self.layout2 = QtWidgets.QVBoxLayout()
         self.layout2.addWidget(self.pw)
         self.layout2.addWidget(self.vol_label)
         self.layout2.addWidget(self.pw2)
-        # self.layout2.addLayout(self.layout_button)
-        # self.layout2.addWidget(self.stackedwidget)
-        # self.layout2.addWidget(self.pw3)
         self.layout2.addWidget(self.kdj_label)
         self.layout2.addWidget(self.pw4)
         # 设置比例 setStretch(int index, int stretch)
@@ -998,7 +917,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
     def set_data(self, data: Dict[str, Any], hline_tradepoint_dict: dict, chicang_record: dict, chicang_record2: dict):
         self.whole_df = data['whole_df']  # 接收到的所有数据
         self.whole_df['tradeDate'] = self.whole_df['tradeDate'].astype(str)
-        # self.current_whole_df = self.whole_df.iloc[0:min(30, len(self.whole_df))]
         self.whole_pd_header = data['whole_pd_header']  # 所有列名
         self.whole_pd_header_Chinese = data['whole_pd_header_Chinese']  # 所有列名的中文
         self.hline_tradepoint_dict = hline_tradepoint_dict  # 当前交易点的dict
@@ -1008,23 +926,13 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         self.caculate_and_show_data()
         pass
 
-    # 画当前画布的数据
+    # 画图
     def caculate_and_show_data(self):
-        # df = self.points.copy()
         df = self.whole_df.copy()
         df.reset_index(inplace=True)
         tradeDate_list = df['tradeDate'].values.tolist()
         x = range(len(df))
         xTick_show = []
-        # if len(tradeDate_list) > 100:
-        #     x_dur = math.ceil(len(tradeDate_list) / 5)
-        # else:
-        #     x_dur = math.ceil(len(tradeDate_list) / 5)
-        # # x_dur = math.ceil(len(df) / 20)
-        # for i in range(0, len(df), x_dur):
-        #     xTick_show.append((i, tradeDate_list[i]))
-        # if len(df) % 5 != 0:
-        #     xTick_show.append((len(df) - 1, tradeDate_list[-1]))
         candle_data = []
         segment_data = []
         vol_data = []
@@ -1039,15 +947,12 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         xax.setTicks([xTick_show])
         xax2 = self.pw2.getAxis('bottom')
         xax2.setTicks([xTick_show])
-        # xax3 = self.pw3.getAxis('bottom')
-        # xax3.setTicks([xTick_show])
         xax4 = self.pw4.getAxis('bottom')
         xax4.setTicks([xTick_show])
 
         # 开始配置显示的内容
         self.pw.clear()
         self.pw2.clear()
-        # self.pw3.clear()
         self.pw4.clear()
 
         # 1.画k线图
@@ -1057,7 +962,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
 
         # 要显示均线
         if average_state == 1:
-            # self.pw.addLegend(size=(40, 40))
             if df['ma5'][0] != 0:
                 ma5_fixed_target = pg.PlotCurveItem(x=np.array(x), y=np.array(df['ma5'].values.tolist()),
                                                     pen=pg.mkPen({'color': self.color_ma_5, 'width': 2}),
@@ -1105,9 +1009,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
 
         # 有交易点要显示
         if self.hline_tradepoint_dict != None:
-            # self.line_tradepoint = pg.InfiniteLine(angle=0, movable=False)
-            # self.label_tradepoint = pg.TextItem()
-            # self.line_tradepoint.setPos(self.hline_tradepoint_dict['成交价'])
             if self.hline_tradepoint_dict['类型'] == '买开' or self.hline_tradepoint_dict['类型'] == '买平':
                 if self.hline_tradepoint_dict['类型'] == '买开':
                     html_str = str(self.hline_tradepoint_dict['成交价']) + '  买多' + str(self.hline_tradepoint_dict['成交量']) + "手"
@@ -1130,10 +1031,7 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
                                                        labelOpts={'position': 0.05, 'color': (255, 255, 255), 'movable': False,
                                                                   'fill': (self.color_kong[0], self.color_kong[1],
                                                                            self.color_kong[2], 150)})
-            # self.label_tradepoint.setHtml(html_str)
-            # self.label_tradepoint.setPos(0, self.hline_tradepoint_dict['成交价'])
             self.pw.addItem(self.line_tradepoint, ignoreBounds=True)
-            # self.pw.addItem(self.label_tradepoint, ignoreBounds=True)
 
         # 持仓记录要显示
         if self.chicang_record:
@@ -1162,38 +1060,16 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         self.pw.addItem(self.hLine, ignoreBounds=True)
         self.pw.addItem(self.label, ignoreBounds=True)
 
-        # 2.持仓量
+        # 2.成交量
         vol_fixed_target = VolItem(vol_data)
         self.pw2.addItem(vol_fixed_target)
         self.vLine2 = pg.InfiniteLine(angle=90, movable=False)
-        # self.hLine2 = pg.InfiniteLine(angle=0, movable=False)
         self.pw2.addItem(self.vLine2, ignoreBounds=True)
         self.pw2.setYRange(df['volume'].min(), df['volume'].max())
 
-        # # 3.指标 MACD
-        # self.vLine3 = pg.InfiniteLine(angle=90, movable=False)
-        # # self.hLine3 = pg.InfiniteLine(angle=0, movable=False)
-        # self.pw3.addItem(self.vLine3, ignoreBounds=True)
-        # # self.pw3.addItem(self.hLine3, ignoreBounds=True)
-        # segment_fixed_target = SegmenttickItem(segment_data)
-        # diff_fixed_target = pg.PlotCurveItem(x=np.array(x), y=np.array(df['DIFF'].values.tolist()),
-        #                                      pen=pg.mkPen({'color': self.color_ma_5, 'width': 1}),
-        #                                      connect='finite')
-        # dea_fixed_target = pg.PlotCurveItem(x=np.array(x), y=np.array(df['DEA'].values.tolist()),
-        #                                     pen=pg.mkPen({'color': self.color_ma_10, 'width': 1}),
-        #                                     connect='finite')
-        # self.main_fixed_target_list.append(diff_fixed_target)
-        # self.main_fixed_target_list.append(dea_fixed_target)
-        # self.main_fixed_target_list.append(segment_fixed_target)
-        # self.pw3.addItem(segment_fixed_target)
-        # self.pw3.addItem(diff_fixed_target)
-        # self.pw3.addItem(dea_fixed_target)
-
         # 4.指标 KDJ
         self.vLine4 = pg.InfiniteLine(angle=90, movable=False)
-        # self.hLine4 = pg.InfiniteLine(angle=0, movable=False)
         self.pw4.addItem(self.vLine4, ignoreBounds=True)
-        # self.pw4.addItem(self.hLine4, ignoreBounds=True)
         kdjk_fixed_target = pg.PlotCurveItem(x=np.array(x), y=np.array(df['kdj_k'].values.tolist()),
                                              pen=pg.mkPen({'color': self.color_ma_10, 'width': 1}),
                                              connect='finite')
@@ -1212,26 +1088,21 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
 
         self.pw.setXLink(self.pw)
         self.pw2.setXLink(self.pw)
-        # self.pw3.setXLink(self.pw)
         self.pw4.setXLink(self.pw)
         self.pw.enableAutoRange()
         self.pw2.enableAutoRange()
-        # self.pw3.enableAutoRange()
         self.pw4.enableAutoRange()
         self.vb = self.pw.getViewBox()
         self.proxy = pg.SignalProxy(self.pw.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
         self.proxy2 = pg.SignalProxy(self.pw2.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        # self.proxy3 = pg.SignalProxy(self.pw3.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
         self.proxy4 = pg.SignalProxy(self.pw4.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
         self.pw.addLegend(size=(40, 40))
         self.pw2.addLegend(size=(40, 40))
-        # self.pw3.addLegend(size=(40, 40))
         self.pw4.addLegend(size=(40, 40))
-
-
         return True
         pass
 
+    # 鼠标移动
     def mouseMoved(self, evt):
         pos = evt[0]
         # 鼠标在k线图区域
@@ -1250,31 +1121,11 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
             self.vLine2.setPos(mousePoint.x())
-            # self.vLine3.setPos(mousePoint.x())
             self.vLine4.setPos(mousePoint.x())
-            # self.hLine2.setPos(mousePoint.y())
-        pass
-
-    # 右键菜单
-    def contextMenuEvent(self, event):
-        menu =QMenu(self)
-        action = QAction("下单", self)
-        action.triggered.connect(self.trade)
-        menu.addAction(action)
-        menu.exec_(QtGui.QCursor().pos())
-
-    # def button_macd_clicked(self):
-    #     self.stackedwidget.setCurrentIndex(0)
-    #
-    # def button_kdj_clicked(self):
-    #     self.stackedwidget.setCurrentIndex(1)
-
-    pass
 
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     window = MyWindow()
-    # window.setWindowState(Qt.WindowMaximized)
     window.show()  # 显示窗体,使控件可见(默认是隐藏)
     sys.exit(app.exec_())  # 程序关闭时退出进程

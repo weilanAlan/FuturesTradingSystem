@@ -3,22 +3,11 @@ import tkinter  # 图形界面库
 import threading
 from tkinter import ttk
 from tkinter import *
-from tkinter import messagebox
 from tkinter.messagebox import showerror, showinfo
-from tkinter.simpledialog import askinteger
-from tkinter.ttk import Separator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import pandas as pd
-import tushare as ts  # 量化分析数据库
-import os  # 用于文件操作
 import json  # 用于保存导出我们记录的操作
-import re
-import requests
-import time
 import calendar
-import ctypes
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
-from PyQt5.QtWidgets import QMessageBox
 from matplotlib import pyplot as plt
 
 
@@ -143,8 +132,7 @@ class CalendarApp:
 # self.old_dict2:记录计算而得的持仓数据
 class tradeDemo(QObject):
     signal1 = pyqtSignal(dict)  # 交易点
-    signal2 = pyqtSignal(str, dict, dict)  # 双击持仓记录，显示持仓记录
-    # signal3 = pyqtSignal(str, dict, dict)  # 双击成交记录，显示持仓记录
+    signal2 = pyqtSignal(str, dict, dict)  # 双击某条记录，显示持仓记录
     signal_symbol = pyqtSignal(str)
 
     def __init__(self):
@@ -171,7 +159,6 @@ class tradeDemo(QObject):
         l1_symbol = tkinter.Label(frame1, text='合约代码:')
         l1_symbol.place(x=10, y=5)
         self.combo_box = ttk.Combobox(frame1, values=codelist, width=8)
-        self.combo_box.pack()
         self.combo_box.current(codelist.index(self.symbol))  # 将当前symbol设置为默认选项
         self.combo_box.bind("<<ComboboxSelected>>", self.change_symbol)
         self.combo_box.place(x=110, y=5)
@@ -407,14 +394,12 @@ class tradeDemo(QObject):
         self.notebook.add(frame3_2, text="   持仓   ")
         self.notebook.pack(fill=BOTH, expand=True)
 
-        # 我的持仓初始化
-        global mylist
         self.initMyList()
         global data_all
         self.getCurrentData()
         self.gui.mainloop()
 
-    # 我的持仓初始化，获取remain、self.old_dict
+    # 获取remain、self.old_dict
     def initMyList(self):
         global remain
         self.old_dict = []
@@ -1312,7 +1297,7 @@ class tradeDemo(QObject):
                 dict = i
             if i['合约代码'] == symbol_name and i['类型'] == '空':
                 dict2 = i
-        # 每次双击某条持仓记录都向主页传参，显示持仓记录
+        # 每次双击某条成交记录都向主页传参，显示持仓记录
         self.signal2.emit(symbol_name, dict, dict2)  # 发射信号
 
     def treeviewClick2(self, event):
