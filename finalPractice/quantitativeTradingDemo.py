@@ -6,11 +6,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import warnings
-
+import quantstats as qs
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 strategy_list = ['双均线策略', 'Dual Thrust策略', '菲阿里四价策略']
-# strategy_list = ['双均线策略', '菲阿里四价策略']
 codelist = ['RB888', 'RB99', 'SA99', 'SA888', 'jm888', 'jm99']  # 存储期货代码
 dict_tradeunit = {'RB888': 10, 'RB99': 10, 'SA99': 20, 'SA888': 20, 'jm888': 60, 'jm99': 60}
 dict_marginratio = {'RB888': 0.07, 'RB99': 0.07, 'SA99': 0.12, 'SA888': 0.12, 'jm888': 0.2, 'jm99': 0.2}
@@ -95,8 +94,6 @@ class quantitativeTradingDemo:
         self.list_tree = []
         self.tree.tag_configure('tag_sum', background="lightgrey")
         self.root = self.tree.insert('', END, text="量化交易记录")
-        for i in range(len(strategy_list)):
-            self.list_tree.append(self.tree.insert(self.root, END, text=strategy_list[i]))
         scrollbar_y.config(command=self.tree.yview)
         scrollbar_y.pack(side=RIGHT, fill=Y)
         self.tree.pack(fill=BOTH, expand=True)
@@ -105,7 +102,6 @@ class quantitativeTradingDemo:
 
     def change_symbol(self, aaa):
         self.symbol = self.combo_box.get()
-        print(self.symbol)
         # 清除表格
         x = self.tree.get_children()
         for item in x:
@@ -121,22 +117,36 @@ class quantitativeTradingDemo:
         global initial_cash
         df = pd.DataFrame(self.data, columns=['symbol', 'datetime', 'open', 'close', 'high', 'low'])
         df = df[df['symbol'] == self.symbol]
+        self.chicang_num_duo = [0, 0, 0]
+        self.chicang_num_kong = [0, 0, 0]
+        self.win_num = [0, 0, 0]
+        self.lose_num = [0, 0, 0]
+        self.ping_num = [0, 0, 0]
+        self.win_value = [0, 0, 0]
+        self.lose_value = [0, 0, 0]
         # 1.双均线策略
         # 短周期为20，长周期为60
         # 当短期均线由下向上穿越长期均线时做多,当短期均线由上向下穿越长期均线时做空
         # 每次开仓前先平掉所持仓位，再开仓
-        self.chicang_num_duo = [0, 0, 0]
-        self.chicang_num_kong = [0, 0, 0]
         initial_cash = 30000
         chengjiao_dict = []
         df['position1'] = 0
         df['remain1'] = 30000
+        df['max_drawdown1'] = 0
+        max_price = 0
+        max_huiche1 = 0
         short_window = 20
         long_window = 60
         df['short_MA'] = df['close'].rolling(window=short_window).mean()
         df['long_MA'] = df['close'].rolling(window=long_window).mean()
         # 交易逻辑
         for i in range(len(df)):
+            if max_price == 0:
+                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'max_drawdown1'] = 0
+            else:
+                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'max_drawdown1'] = 1 - df.iloc[i]['close'] / max_price
+            max_price = max(max_price, df.iloc[i]['close'])
+            max_huiche1 = max(max_huiche1, df.iloc[i]['max_drawdown1'])
             if i < long_window:
                 continue
             else:
@@ -165,6 +175,14 @@ class quantitativeTradingDemo:
                                       '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
                         chengjiao_dict.append(tempt_dict)
                         self.chicang_num_kong[0] = 0
+                        if profitandloss > 0:
+                            self.win_num[0] += 1
+                            self.win_value[0] += profitandloss
+                        elif profitandloss < 0:
+                            self.lose_num[0] += 1
+                            self.lose_value[0] += profitandloss
+                        else:
+                            self.ping_num[0] += 1
                         # 买多
                         initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[
                             self.symbol]
@@ -197,6 +215,14 @@ class quantitativeTradingDemo:
                                       '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
                         chengjiao_dict.append(tempt_dict)
                         self.chicang_num_duo[0] = 0
+                        if profitandloss > 0:
+                            self.win_num[0] += 1
+                            self.win_value[0] += profitandloss
+                        elif profitandloss < 0:
+                            self.lose_num[0] += 1
+                            self.lose_value[0] += profitandloss
+                        else:
+                            self.ping_num[0] += 1
                         # 卖空
                         initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[
                             self.symbol]
@@ -211,15 +237,141 @@ class quantitativeTradingDemo:
                     self.symbol] * dict_marginratio[self.symbol] * (self.chicang_num_duo[0] + self.chicang_num_kong[0])
         shoushu = 0
         yingkui = 0
+        self.list_tree.append(self.tree.insert(self.root, END, text=strategy_list[0]))
         for i in chengjiao_dict:
             self.tree.insert(self.list_tree[0], END, values=(
                 i['时间'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
             shoushu += i['成交量']
             if i['平仓盈亏'] != '-':
                 yingkui += float(i['平仓盈亏'])
-        self.tree.insert(self.list_tree[0], END, values=('总计', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
-        self.tree.insert(self.list_tree[0], END, values=('', '', '', '', '', ''))
+        self.tree.insert(self.root, END, values=('总计', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
+        self.tree.insert(self.root, END, values=('', '', '', '', '', ''))
+
         df['total_value1'] = df['position1'] + df['remain1']
+
+        # 2.Dual Thrust策略
+        # 定义一个区间，区间的上界和下界分别为支撑线和阻力线。
+        # 当价格超过上界时，如果持有空仓，先平再开多；如果没有仓位，直接开多。
+        # 当价格跌破下界时，如果持有多仓，先平再开空；如果没有仓位，直接开空。
+        initial_cash = 30000
+        chengjiao_dict = []
+        df['position2'] = 0
+        df['remain2'] = 30000
+        date = df.iloc[0]['datetime']
+        current_open = df.iloc[0]['open']
+        # 设置参数，一般根据自己经验以及回测结果进行优化
+        k1 = 0.2
+        k2 = 0.2
+        N = 5
+        # 交易逻辑
+        for i in range(len(df)):
+            if i < N:
+                continue
+            HH = df.iloc[i - N: i]['high'].max()  # 计算Dual Thrust 的上下轨
+            HC = df.iloc[i - N: i]['close'].max()
+            LC = df.iloc[i - N: i]['close'].min()
+            LL = df.iloc[i - N: i]['low'].min()
+            p_range = max(HH - LC, HC - LL)
+            if str(date)[0:10] not in str(df.iloc[i]['datetime']):
+                date = df.iloc[i]['datetime']
+                current_open = df.iloc[i]['open']
+            buy_line = current_open + p_range * k1  # 上轨
+            sell_line = current_open - p_range * k2  # 下轨
+            # 如果超过range的上界
+            if df.iloc[i]['close'] > buy_line:
+                if self.chicang_num_duo[1] != 0:  # 已经持有多仓，直接返回
+                    continue
+                elif self.chicang_num_kong[1] != 0:  # 已经持有空仓，平空再做多
+                    # 平空
+                    initial_cash += dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol] * \
+                                    self.chicang_num_kong[1]
+                    profitandloss = 0
+                    for ii in chengjiao_dict:
+                        if ii['类型'] == '卖开' and ii['已平仓手数'] == 0:
+                            profitandloss += (ii['成交量'] * (ii['成交价'] - df.iloc[i]['close']) * dict_tradeunit[
+                                self.symbol])
+                            ii['已平仓手数'] = ii['成交量']
+                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '买平', '成交量': self.chicang_num_kong[1],
+                                  '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
+                    chengjiao_dict.append(tempt_dict)
+                    self.chicang_num_kong[1] = 0
+                    if profitandloss > 0:
+                        self.win_num[1] += 1
+                        self.win_value[1] += profitandloss
+                    elif profitandloss < 0:
+                        self.lose_num[1] += 1
+                        self.lose_value[1] += profitandloss
+                    else:
+                        self.ping_num[1] += 1
+                    # 买多
+                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
+                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '买开', '成交量': 1,
+                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
+                    chengjiao_dict.append(tempt_dict)
+                    self.chicang_num_duo[1] += 1
+                else:  # 没有持仓时，市价开多
+                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
+                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '买开', '成交量': 1,
+                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
+                    chengjiao_dict.append(tempt_dict)
+                    self.chicang_num_duo[1] += 1
+                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain2'] = initial_cash
+            # 如果低于range的下界
+            elif df.iloc[i]['close'] < sell_line:
+                if self.chicang_num_kong[1] != 0:  # 已经持有空仓，直接返回
+                    continue
+                elif self.chicang_num_duo[1] != 0:  # 已经持有多仓，平多再做空
+                    # 平多
+                    initial_cash += dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol] * \
+                                    self.chicang_num_duo[1]
+                    profitandloss = 0
+                    for ii in chengjiao_dict:
+                        if ii['类型'] == '买开' and ii['已平仓手数'] == 0:
+                            profitandloss += (ii['成交量'] * (df.iloc[i]['close'] - ii['成交价']) * dict_tradeunit[
+                                self.symbol])
+                            ii['已平仓手数'] = ii['成交量']
+                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '卖平', '成交量': self.chicang_num_duo[1],
+                                  '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
+                    chengjiao_dict.append(tempt_dict)
+                    self.chicang_num_duo[1] = 0
+                    if profitandloss > 0:
+                        self.win_num[1] += 1
+                        self.win_value[1] += profitandloss
+                    elif profitandloss < 0:
+                        self.lose_num[1] += 1
+                        self.lose_value[1] += profitandloss
+                    else:
+                        self.ping_num[1] += 1
+                    # 买空
+                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
+                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '卖开', '成交量': 1,
+                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
+                    chengjiao_dict.append(tempt_dict)
+                    self.chicang_num_kong[1] += 1
+                else:  # 没有持仓时，市价开空
+                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
+                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '卖开', '成交量': 1,
+                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
+                    chengjiao_dict.append(tempt_dict)
+                    self.chicang_num_kong[1] += 1
+                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain2'] = initial_cash
+            else:
+                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain2'] = df.iloc[i - 1]['remain2']
+            df.loc[df['datetime'] == df.iloc[i]['datetime'], 'position2'] = df.iloc[i]['close'] * dict_tradeunit[
+                self.symbol] * dict_marginratio[self.symbol] * (self.chicang_num_duo[1] + self.chicang_num_kong[
+                1])
+        shoushu = 0
+        yingkui = 0
+        self.list_tree.append(self.tree.insert(self.root, END, text=strategy_list[1]))
+        for i in chengjiao_dict:
+            self.tree.insert(self.list_tree[1], END, values=(
+                i['时间'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
+            shoushu += i['成交量']
+            if i['平仓盈亏'] != '-':
+                yingkui += float(i['平仓盈亏'])
+        self.tree.insert(self.root, END, values=('总计', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
+        self.tree.insert(self.root, END, values=('', '', '', '', '', ''))
+        df['total_value2'] = df['position2'] + df['remain2']
 
         # 3.菲阿里四价策略
         # 一种日内策略交易，适合短线投资者。
@@ -231,13 +383,33 @@ class quantitativeTradingDemo:
         chengjiao_dict = []
         df['position3'] = 0
         df['remain3'] = 30000
-        flag = 0
         # 设置参数
-        open = df['open'].iloc[-1]  # 开盘价直接在data最后一个数据里取到,前一交易日的最高和最低价为history_data里面的倒数第二条中取到
-        high = df['high'].iloc[-2]
-        low = df['low'].iloc[-2]
+        tempt_start = 0
+        tempt_end = 0
+        for i in range(len(df)):
+            if str(df.iloc[0]['datetime'])[0:10] in str(df.iloc[i]['datetime']):
+                tempt_end = i
+            else:
+                break
+        high = df.iloc[0: tempt_end+1]['high'].max()  # 昨高
+        low = df.iloc[0: tempt_end+1]['low'].min()  # 昨低
+        open = df.iloc[tempt_end+1]['open']  # 今开
+        date = df.iloc[tempt_end+1]['datetime'] # 今日
+        tempt = tempt_end
         # 交易逻辑部分
         for i in range(len(df)):
+            if i < tempt + 1:
+                continue
+            if str(date)[0:10] not in str(df.iloc[i]['datetime']):
+                tempt_start = tempt_end + 1
+                tempt_end = tempt_start
+                while str(df.iloc[tempt_start]['datetime'])[0:10] in str(df.iloc[tempt_end]['datetime']):
+                    tempt_end += 1
+                tempt_end -= 1
+                high = df.iloc[tempt_start: tempt_end+1]['high'].max()
+                low = df.iloc[tempt_start: tempt_end+1]['low'].min()
+                open = df.iloc[tempt_end+1]['open']
+                date = df.iloc[tempt_end+1]['datetime']
             if self.chicang_num_duo[2] != 0:  # 持多仓
                 if df.iloc[i]['close'] < open:  # 小于开盘价止损(平多)
                     # 平多
@@ -253,6 +425,14 @@ class quantitativeTradingDemo:
                                   '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
                     chengjiao_dict.append(tempt_dict)
                     self.chicang_num_duo[2] = 0
+                    if profitandloss > 0:
+                        self.win_num[2] += 1
+                        self.win_value[2] += profitandloss
+                    elif profitandloss < 0:
+                        self.lose_num[2] += 1
+                        self.lose_value[2] += profitandloss
+                    else:
+                        self.ping_num[2] += 1
                     df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain3'] = initial_cash
                 else:
                     df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain3'] = df.iloc[i - 1]['remain3']
@@ -271,6 +451,14 @@ class quantitativeTradingDemo:
                                   '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
                     chengjiao_dict.append(tempt_dict)
                     self.chicang_num_kong[2] = 0
+                    if profitandloss > 0:
+                        self.win_num[2] += 1
+                        self.win_value[2] += profitandloss
+                    elif profitandloss < 0:
+                        self.lose_num[2] += 1
+                        self.lose_value[2] += profitandloss
+                    else:
+                        self.ping_num[2] += 1
                     df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain3'] = initial_cash
                 else:
                     df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain3'] = df.iloc[i - 1]['remain3']
@@ -311,6 +499,14 @@ class quantitativeTradingDemo:
                           '成交价': df.iloc[-1]['close'], '平仓盈亏': round(profitandloss, 2)}
             chengjiao_dict.append(tempt_dict)
             self.chicang_num_duo[2] = 0
+            if profitandloss > 0:
+                self.win_num[2] += 1
+                self.win_value[2] += profitandloss
+            elif profitandloss < 0:
+                self.lose_num[2] += 1
+                self.lose_value[2] += profitandloss
+            else:
+                self.ping_num[2] += 1
             df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'position3'] = df.iloc[-1]['close'] * dict_tradeunit[
                 self.symbol] * dict_marginratio[self.symbol] * (self.chicang_num_duo[2] + self.chicang_num_kong[
                 2])
@@ -329,122 +525,73 @@ class quantitativeTradingDemo:
                           '成交价': df.iloc[-1]['close'], '平仓盈亏': round(profitandloss, 2)}
             chengjiao_dict.append(tempt_dict)
             self.chicang_num_kong[2] = 0
+            if profitandloss > 0:
+                self.win_num[2] += 1
+                self.win_value[2] += profitandloss
+            elif profitandloss < 0:
+                self.lose_num[2] += 1
+                self.lose_value[2] += profitandloss
+            else:
+                self.ping_num[2] += 1
             df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'position3'] = df.iloc[-1]['close'] * dict_tradeunit[
                 self.symbol] * dict_marginratio[self.symbol] * (self.chicang_num_duo[2] + self.chicang_num_kong[
                 2])
             df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'remain3'] = initial_cash
         shoushu = 0
         yingkui = 0
+        self.list_tree.append(self.tree.insert(self.root, END, text=strategy_list[2]))
         for i in chengjiao_dict:
             self.tree.insert(self.list_tree[2], END, values=(
                 i['时间'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
             shoushu += i['成交量']
             if i['平仓盈亏'] != '-':
                 yingkui += float(i['平仓盈亏'])
-        self.tree.insert(self.list_tree[2], END, values=('总计', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
-        self.tree.insert(self.list_tree[2], END, values=('', '', '', '', '', ''))
+        self.tree.insert(self.root, END, values=('总计', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
+        self.tree.insert(self.root, END, values=('', '', '', '', '', ''))
         df['total_value3'] = df['position3'] + df['remain3']
 
-        # 2.Dual Thrust策略
-        # 定义一个区间，区间的上界和下界分别为支撑线和阻力线。
-        # 当价格超过上界时，如果持有空仓，先平再开多；如果没有仓位，直接开多。
-        # 当价格跌破下界时，如果持有多仓，先平再开空；如果没有仓位，直接开空。
-        initial_cash = 30000
-        chengjiao_dict = []
-        df['position2'] = 0
-        df['remain2'] = 30000
-        # 设置参数，一般根据自己经验以及回测结果进行优化
-        k1 = 0.2
-        k2 = 0.2
-        HH = df['high'].max()  # 计算Dual Thrust 的上下轨
-        HC = df['close'].max()
-        LC = df['close'].max()
-        LL = df['low'].min()
-        p_range = max(HH - LC, HC - LL)
-        current_open = df['open'].iloc[-1]  # 获取当天的开盘价
-        df.drop(df.tail(1).index, inplace=True)  # 去掉当天的实时数据
-        buy_line = current_open + p_range * k1  # 上轨
-        sell_line = current_open - p_range * k2  # 下轨
-        # 交易逻辑
-        for i in range(len(df)):
-            # 如果超过range的上界
-            if df.iloc[i]['close'] > buy_line:
-                if self.chicang_num_duo[1] != 0:  # 已经持有多仓，直接返回
-                    continue
-                elif self.chicang_num_kong[1] != 0:  # 已经持有空仓，平空再做多
-                    # 平空
-                    initial_cash += dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol] * \
-                                    self.chicang_num_kong[1]
-                    profitandloss = 0
-                    for ii in chengjiao_dict:
-                        if ii['类型'] == '卖开' and ii['已平仓手数'] == 0:
-                            profitandloss += (ii['成交量'] * (ii['成交价'] - df.iloc[i]['close']) * dict_tradeunit[
-                                self.symbol])
-                            ii['已平仓手数'] = ii['成交量']
-                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '买平', '成交量': self.chicang_num_kong[1],
-                                  '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
-                    chengjiao_dict.append(tempt_dict)
-                    self.chicang_num_kong[1] = 0
-                    # 买多
-                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
-                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '买开', '成交量': 1,
-                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
-                    chengjiao_dict.append(tempt_dict)
-                    self.chicang_num_duo[1] += 1
-                else:  # 没有持仓时，市价开多
-                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
-                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '买开', '成交量': 1,
-                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
-                    chengjiao_dict.append(tempt_dict)
-                    self.chicang_num_duo[1] += 1
-                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain2'] = initial_cash
-            # 如果低于range的下界
-            elif df.iloc[i]['close'] < sell_line:
-                if self.chicang_num_kong[1] != 0:  # 已经持有空仓，直接返回
-                    continue
-                elif self.chicang_num_duo[1] != 0:  # 已经持有多仓，平多再做空
-                    # 平多
-                    initial_cash += dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol] * \
-                                    self.chicang_num_duo[1]
-                    profitandloss = 0
-                    for ii in chengjiao_dict:
-                        if ii['类型'] == '买开' and ii['已平仓手数'] == 0:
-                            profitandloss += (ii['成交量'] * (df.iloc[i]['close'] - ii['成交价']) * dict_tradeunit[
-                                self.symbol])
-                            ii['已平仓手数'] = ii['成交量']
-                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '卖平', '成交量': self.chicang_num_duo[1],
-                                  '成交价': df.iloc[i]['close'], '平仓盈亏': round(profitandloss, 2)}
-                    chengjiao_dict.append(tempt_dict)
-                    self.chicang_num_duo[1] = 0
-                    # 买空
-                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
-                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '卖开', '成交量': 1,
-                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
-                    chengjiao_dict.append(tempt_dict)
-                    self.chicang_num_kong[1] += 1
-                else:  # 没有持仓时，市价开空
-                    initial_cash -= dict_tradeunit[self.symbol] * df.iloc[i]['close'] * dict_marginratio[self.symbol]
-                    tempt_dict = {'时间': df.iloc[i]['datetime'], '类型': '卖开', '成交量': 1,
-                                  '成交价': df.iloc[i]['close'], '平仓盈亏': '-', '已平仓手数': 0}
-                    chengjiao_dict.append(tempt_dict)
-                    self.chicang_num_kong[1] += 1
-                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain2'] = initial_cash
-            else:
-                df.loc[df['datetime'] == df.iloc[i]['datetime'], 'remain2'] = df.iloc[i - 1]['remain2']
-            df.loc[df['datetime'] == df.iloc[i]['datetime'], 'position2'] = df.iloc[i]['close'] * dict_tradeunit[
-                self.symbol] * dict_marginratio[self.symbol] * (self.chicang_num_duo[1] + self.chicang_num_kong[
-                1])
-        shoushu = 0
-        yingkui = 0
-        for i in chengjiao_dict:
-            self.tree.insert(self.list_tree[1], END, values=(
-                i['时间'], i['类型'], i['成交量'], i['成交价'], i['平仓盈亏']))
-            shoushu += i['成交量']
-            if i['平仓盈亏'] != '-':
-                yingkui += float(i['平仓盈亏'])
-        self.tree.insert(self.list_tree[1], END, values=('总计', '', shoushu, '', round(yingkui, 2)), tags='tag_sum')
-        self.tree.insert(self.list_tree[1], END, values=('', '', '', '', '', ''))
-        df['total_value2'] = df['position2'] + df['remain2']
+        # 计算指标
+        if max_huiche1 == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'max_drawdown1'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'max_drawdown1'] = round(max_huiche1, 3)
+        if self.win_num[0] + self.lose_num[0] + self.ping_num[0] == 0 or self.win_num[0] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_rate1'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_rate1'] = round(self.win_num[0] / (self.win_num[0] + self.lose_num[0] + self.ping_num[0]), 3)
+        if self.win_num[1] + self.lose_num[1] + self.ping_num[1] == 0 or self.win_num[1] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_rate2'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_rate2'] = round(self.win_num[1] / (self.win_num[1] + self.lose_num[1] + self.ping_num[1]), 3)
+        if self.win_num[2] + self.lose_num[2] + self.ping_num[2] == 0 or self.win_num[2] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_rate3'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_rate3'] = round(self.win_num[2] / (self.win_num[2] + self.lose_num[2] + self.ping_num[2]), 3)
+        if self.lose_num[0] == 0 or self.win_num[0] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_loss_ratio1'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_loss_ratio1'] = round(self.win_num[0] / self.lose_num[0], 3)
+        if self.lose_num[1] == 0 or self.win_num[1] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_loss_ratio2'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_loss_ratio2'] = round(self.win_num[1] / self.lose_num[1], 3)
+        if self.lose_num[2] == 0 or self.win_num[2] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_loss_ratio3'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'win_loss_ratio3'] = round(self.win_num[2] / self.lose_num[2], 3)
+        if self.lose_value[0] == 0 or self.win_value[0] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'risk_return_ratio1'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'risk_return_ratio1'] = round(self.win_value[0] / self.lose_value[0], 3) * -1
+        if self.lose_value[1] == 0 or self.win_value[1] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'risk_return_ratio2'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'risk_return_ratio2'] = round(self.win_value[1] / self.lose_value[1], 3) * -1
+        if self.lose_value[2] == 0 or self.win_value[2] == 0:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'risk_return_ratio3'] = 0
+        else:
+            df.loc[df['datetime'] == df.iloc[-1]['datetime'], 'risk_return_ratio3'] = round(self.win_value[2] / self.lose_value[2], 3) * -1
+
         # 画图
         self.plot_df = df.copy()
         self.plot_graph(self.plot_df, fig, canvas)
@@ -464,3 +611,18 @@ class quantitativeTradingDemo:
         plt.xlabel('时间')
         plt.legend(loc='upper left')
         canvas.draw()
+        # 输出指标
+        print(self.symbol + ':')
+        print('最大回撤: ' + format(df.iloc[-1]['max_drawdown1'], '.2%'))
+        data = {
+            '总资产': [round(df.iloc[-1]['total_value1'], 2), round(df.iloc[-1]['total_value2'], 2), round(df.iloc[-1]['total_value3'], 2)],
+            '平仓盈亏':[round(self.win_value[0] + self.lose_value[0], 2), round(self.win_value[1] + self.lose_value[1], 2), round(self.win_value[2] + self.lose_value[2], 2)],
+            '胜率': [df.iloc[-1]['win_rate1'], df.iloc[-1]['win_rate2'], df.iloc[-1]['win_rate3']],
+            '胜负比': [df.iloc[-1]['win_loss_ratio1'], df.iloc[-1]['win_loss_ratio2'], df.iloc[-1]['win_loss_ratio3']],
+            '盈亏比': [df.iloc[-1]['risk_return_ratio1'], df.iloc[-1]['risk_return_ratio2'], df.iloc[-1]['risk_return_ratio3']]
+        }
+        result = pd.DataFrame(data, columns=['总资产', '平仓盈亏', '胜率', '胜负比', '盈亏比'], index=strategy_list)
+        print(result)
+        print()
+        print()
+

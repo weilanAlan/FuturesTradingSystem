@@ -18,7 +18,7 @@ from finalPractice.datadisplay import Ui_MainWindow
 pg.setConfigOption('background', 'k')
 pg.setConfigOption('foreground', 'w')
 
-# 设置全局变量：合约名称
+# 设置全局变量
 symbol = 'RB888'
 average_state = 0
 bulin_state = 0
@@ -70,7 +70,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.whole_duration_label = QtWidgets.QLabel('所有范围：左边界~右边界')
         self.now_duration_label = QtWidgets.QLabel('当前范围：左边界~右边界')
 
-        # 设置值
+        # 设置title，获取值
         self.title_label.setText(symbol)
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
 
@@ -85,7 +85,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         graph.set_data(self.dealwithData(), self.hline_tradepoint_dict, self.chicang_record, self.chicang_record2)
         self.verticalLayout_kline_graph.addWidget(graph)
 
-        # 布局verticalLayout_dateframe
+        # 布局，放在verticalLayout_dateframe
         spacerItem1 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         spacerItem2 = QtWidgets.QSpacerItem(50, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         layout_date = QtWidgets.QHBoxLayout()
@@ -291,7 +291,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                                       self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss'))
 
     def select_dayK(self):
-        self.statusbar.showMessage("日k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -314,7 +313,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2 :
             reply = QMessageBox.about(self, "警告", "天数少于2，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("日k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -323,7 +324,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_weekK(self):
-        self.statusbar.showMessage("周k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -353,7 +353,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2 :
             reply = QMessageBox.about(self, "警告", "周数少于2，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("周k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -362,7 +364,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_monthK(self):
-        self.statusbar.showMessage("月k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -392,7 +393,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "月份数少于2，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("月k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -401,7 +404,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_quarterK(self):
-        self.statusbar.showMessage("季k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -431,7 +433,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2 :
             reply = QMessageBox.about(self, "警告", "季度数少于2，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("季k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -440,7 +444,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_yearK(self):
-        self.statusbar.showMessage("年k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -470,7 +473,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "年数少于2，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("年k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -498,7 +503,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_3min(self):
-        self.statusbar.showMessage("3分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -521,7 +525,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足6分钟，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("3分钟k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -530,7 +536,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_5min(self):
-        self.statusbar.showMessage("5分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -553,7 +558,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足10分钟，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("5分钟k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -562,7 +569,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_10min(self):
-        self.statusbar.showMessage("10分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -585,7 +591,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足20分钟，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("10分钟k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -594,7 +602,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_15min(self):
-        self.statusbar.showMessage("15分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -617,7 +624,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足半小时，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("15分钟k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -626,7 +635,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_30min(self):
-        self.statusbar.showMessage("30分钟k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -649,7 +657,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足1小时，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("30分钟k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -658,7 +668,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_1h(self):
-        self.statusbar.showMessage("1小时k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -681,7 +690,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足2小时，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("1小时k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -690,7 +701,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             self.verticalLayout_kline_graph.addWidget(graph)
 
     def select_2h(self):
-        self.statusbar.showMessage("2小时k")
         self.getCurrentData()  # 设置self.current_data:symbol下的所有数据
         left_point = self.left_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
         right_point = self.right_point.dateTime().toString('yyyy-MM-dd HH:mm:ss')
@@ -713,7 +723,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.current_data.reset_index(inplace=True)
         if len(self.current_data) < 2:
             reply = QMessageBox.about(self, "警告", "不足4小时，无法作图。")
+            self.select_1min()
         else:
+            self.statusbar.showMessage("2小时k")
             # clear之前画的图
             for i in range(self.verticalLayout_kline_graph.count()):
                 self.verticalLayout_kline_graph.itemAt(i).widget().deleteLater()
@@ -841,7 +853,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         super().__init__()
         self.init_data()
         self.init_ui()
-        # self.timerStart()  # 开始画图
         pass
 
     def init_data(self):
@@ -865,10 +876,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         pass
 
     def init_ui(self):
-        # 设置定时器
-        # self.timer = QTimer(self)
-        # self.timer.timeout.connect(self.newPointPlot)
-
         # 1.一些标题
         self.vol_label = QtWidgets.QLabel('成交量')
         self.vol_label.setAlignment(Qt.AlignLeft)
@@ -898,7 +905,7 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         self.pw4.setMouseEnabled(x=True, y=False)
         self.pw4.setAutoVisible(x=False, y=True)
 
-        # 5.最后，加入布局
+        # 5.加入布局
         self.layout2 = QtWidgets.QVBoxLayout()
         self.layout2.addWidget(self.pw)
         self.layout2.addWidget(self.vol_label)
@@ -922,7 +929,6 @@ class PyQtGraphLineWidget(QtWidgets.QWidget):
         self.hline_tradepoint_dict = hline_tradepoint_dict  # 当前交易点的dict
         self.chicang_record = chicang_record  # 当前选中的持仓记录
         self.chicang_record2 = chicang_record2  # 相同symbol，另一种类型的持仓记录
-
         self.caculate_and_show_data()
         pass
 

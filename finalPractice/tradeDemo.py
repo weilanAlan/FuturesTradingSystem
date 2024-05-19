@@ -147,7 +147,7 @@ class tradeDemo(QObject):
         self.gui.title('模拟交易界面')
         self.gui.geometry('1500x820')
 
-        frame1 = tkinter.LabelFrame(self.gui, text="市场情况", width=750, height=350)
+        frame1 = tkinter.LabelFrame(self.gui, text="合约情况", width=750, height=350)
         frame1.place(x=0, y=0)
         frame2 = tkinter.LabelFrame(self.gui, text="账户分析", width=750, height=350)
         frame2.place(x=750, y=0)
