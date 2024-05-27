@@ -487,6 +487,7 @@ class tradeDemo(QObject):
         max = remain // int(pershouprice)  # 交易手数的上限
         if int(self.res) > max:
             print(showerror(title="警告", message="超过可交易手数上限。"))
+            window.destroy()
         else:
             remain = remain - int(self.res) * int(pershouprice)
             # columns1 = ("成交时间", "合约代码", "合约名称", "类型", "成交量", "成交价")
@@ -581,6 +582,7 @@ class tradeDemo(QObject):
         max = remain // int(pershouprice)  # 交易手数的上限
         if int(self.res) > max:
             print(showerror(title="警告", message="超过可交易手数上限。"))
+            window.destroy()
         else:
             remain = remain - int(self.res) * int(pershouprice)
             # columns1 = ("成交时间", "合约代码", "合约名称", "类型", "成交量", "成交价")
@@ -744,6 +746,7 @@ class tradeDemo(QObject):
 
         if int(self.res_pingduo) > num_duo:
             print(showerror(title="警告", message="超过可交易手数上限。"))
+            window.destroy()
         else:
             remain = remain + int(self.res_pingduo) * int(pershouprice)
             tempt_dict = []  # 用于收集所有该symbol下的、还没有平仓完的买开成交记录
@@ -812,6 +815,7 @@ class tradeDemo(QObject):
 
         if int(self.res_pingkong) > num_kong:
             print(showerror(title="警告", message="超过可交易手数上限。"))
+            window.destroy()
         else:
             remain = remain + int(self.res_pingkong) * int(pershouprice)
             tempt_dict = []  # 用于收集所有该symbol下的、还没完全平仓的卖开成交记录
